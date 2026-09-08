@@ -41,8 +41,10 @@ const browserInfo = {
   duckduckgo: {
     displayName: 'DuckDuckGo',
     releasePackageName: 'com.duckduckgo.mobile.android',
-    urlBarClick: 'omnibarTextInput',
-    urlBarKeys: 'omnibarTextInput',
+    // Native/unified input uses inputField; search-only mode still uses omnibarTextInput.
+    urlBarClick: 'inputField',
+    urlBarClick2: 'omnibarTextInput',
+    urlBarKeys: 'inputField',
     highFiveButton: 'primaryCta'
   },
   edge: {
@@ -425,9 +427,9 @@ class AndroidBrowser {
       const clearButton = await findElement(this.client, this.packageName, this.urlBarClear);
       await this.client.elementClick(clearButton);
     }
-    const urlBarToSendKeys = await findElement(this.client, this.packageName, this.urlBarKeys);
+    let urlBarToSendKeys = await findElement(this.client, this.packageName, this.urlBarKeys);
     if (urlBarToSendKeys === undefined) {
-      throw new Error(`no url-bar text field found for ${this.browser}`);
+      urlBarToSendKeys = urlBarToClick;
     }
     await this.client.elementClear(urlBarToSendKeys);
     await this.client.elementSendKeys(urlBarToSendKeys, url);
