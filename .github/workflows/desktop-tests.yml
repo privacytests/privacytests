@@ -3,7 +3,7 @@ name: Desktop tests
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 8 * * *'
+    - cron: '0 0 * * *'
 
 env:
   CI: true
