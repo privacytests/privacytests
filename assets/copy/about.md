@@ -34,7 +34,7 @@ These tests are run on a regular basis, to monitor the privacy improvements of e
 
 This project is a work in progress and is under active development! I plan to cover more browsers and more tracking vulnerabilities in the future.
 
-I want to hear from you! All kinds of feedback: comments, suggestions, critiques and questions are welcome. You can contact me via email (contact@privacytests.org), [Twitter](https://x.com/privacytests), or [github](https://github.com/arthuredelstein/privacytests.org/issues).
+I want to hear from you! All kinds of feedback: comments, suggestions, critiques and questions are welcome. You can contact me via email (contact@privacytests.org), [X/Twitter](https://x.com/privacytests), [Mastodon](https://mastodon.social/@privacytests), or [github](https://github.com/arthuredelstein/privacytests.org/issues).
 
 ## Full disclosure and transparency
 
