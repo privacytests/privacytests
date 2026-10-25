@@ -23,7 +23,7 @@ export const tests = async () => {
     let response = null;
     for (let i = 0; i < 4 && response === null; ++i) {
       try {
-        response = await fetch('https://wtfismyip.com/json');
+        response = await fetch('https://ipv4.wtfismyip.com/json');
       } catch (e) { }
     }
     const wtfJSON = await response.json();
