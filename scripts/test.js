@@ -3,6 +3,7 @@
 // Usage: `node test --browser=firefox --out=../firefox.json`
 //        `node test --browser=firefox-nightly --out=../firefox-nightly.json`
 //        `node test --browser=chrome --extension=<store id> --out=../chrome.json`
+//        `node test --browser=chrome --runner=macos-26 --out=../chrome.json`
 
 // ## imports
 
@@ -561,7 +562,7 @@ const runTelemetryTests = async (browserSession) => {
 // Runs privacy tests for a single browser configuration.
 // Returns results in a JSON object.
 const runTests = async (
-  browserSpec, { debug, android, ios, categories, hurry } = { debug: false, hurry: false }) => {
+  browserSpec, { debug, android, ios, categories, hurry, runner } = { debug: false, hurry: false }) => {
   console.log(categories);
   const timeStarted = new Date().toISOString();
   cookieProxy.simulateTrackingCookies(mitmProxyPort, debug);
@@ -613,7 +614,9 @@ const runTests = async (
       timeStarted,
       reportedVersion: await browserSession.browser.version(),
       os: os.type(),
-      os_version: os.version()
+      os_version: os.version(),
+      // GitHub Actions runs-on label (or other host id), when passed via --runner.
+      ...(runner ? { runner: String(runner) } : {})
     }];
     const timeStopped = new Date().toISOString();
     let platform;

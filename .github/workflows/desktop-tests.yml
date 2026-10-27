@@ -44,7 +44,15 @@ jobs:
 #          - safari-nightly
           - tor-nightly
           - vivaldi-nightly
-        repetitions: [1, 2, 3, 4, 5]
+        # Five env diversity slots (OS × arch), still numbered 1–5 so
+        # render-multiple can aggregate them like prior same-host repetitions.
+        # Slot 5 is a second macos-26 run for same-env flake signal.
+        repetitions:
+          - { id: 1, runner: macos-26 }
+          - { id: 2, runner: macos-15 }
+          - { id: 3, runner: macos-26-intel }
+          - { id: 4, runner: macos-15-intel }
+          - { id: 5, runner: macos-26 }
         incognito: [off, on]
         # Default off so include rows with tor:on are added as new jobs
         # instead of merging into (and replacing) the normal brave/off jobs.
@@ -58,17 +66,17 @@ jobs:
             incognito: on
         # Brave Tor windows don't fit in the matrix; add fixed iterations here instead.
         include:
-          - { browser: brave, repetitions: 1, incognito: off, tor: on }
-          - { browser: brave, repetitions: 2, incognito: off, tor: on }
-          - { browser: brave, repetitions: 3, incognito: off, tor: on }
-          - { browser: brave, repetitions: 4, incognito: off, tor: on }
-          - { browser: brave, repetitions: 5, incognito: off, tor: on }
-          - { browser: brave-nightly, repetitions: 1, incognito: off, tor: on }
-          - { browser: brave-nightly, repetitions: 2, incognito: off, tor: on }
-          - { browser: brave-nightly, repetitions: 3, incognito: off, tor: on }
-          - { browser: brave-nightly, repetitions: 4, incognito: off, tor: on }
-          - { browser: brave-nightly, repetitions: 5, incognito: off, tor: on }
-    runs-on: macos-latest
+          - { browser: brave, repetitions: { id: 1, runner: macos-26 }, incognito: off, tor: on }
+          - { browser: brave, repetitions: { id: 2, runner: macos-15 }, incognito: off, tor: on }
+          - { browser: brave, repetitions: { id: 3, runner: macos-26-intel }, incognito: off, tor: on }
+          - { browser: brave, repetitions: { id: 4, runner: macos-15-intel }, incognito: off, tor: on }
+          - { browser: brave, repetitions: { id: 5, runner: macos-26 }, incognito: off, tor: on }
+          - { browser: brave-nightly, repetitions: { id: 1, runner: macos-26 }, incognito: off, tor: on }
+          - { browser: brave-nightly, repetitions: { id: 2, runner: macos-15 }, incognito: off, tor: on }
+          - { browser: brave-nightly, repetitions: { id: 3, runner: macos-26-intel }, incognito: off, tor: on }
+          - { browser: brave-nightly, repetitions: { id: 4, runner: macos-15-intel }, incognito: off, tor: on }
+          - { browser: brave-nightly, repetitions: { id: 5, runner: macos-26 }, incognito: off, tor: on }
+    runs-on: ${{ matrix.repetitions.runner }}
     defaults:
       run:
         working-directory: scripts
@@ -76,6 +84,7 @@ jobs:
       # Browser slug in the artifact name (matrix browser, plus -tor for Brave Tor windows).
       RESULT_BROWSER: ${{ matrix.tor == 'on' && format('{0}-tor', matrix.browser) || matrix.browser }}
       RESULT_PRIVATE: ${{ (matrix.incognito == 'on' || matrix.tor == 'on') && 'true' || 'false' }}
+      RESULT_REP: ${{ matrix.repetitions.id }}
 
     steps:
       - uses: actions/checkout@v5
@@ -91,16 +100,16 @@ jobs:
       - name: Run tests
         run: |
           if [ "$RESULT_PRIVATE" = "true" ]; then
-            RESULT_FILE="${RESULT_BROWSER}-private-${{ matrix.repetitions }}"
+            RESULT_FILE="${RESULT_BROWSER}-private-${RESULT_REP}"
           else
-            RESULT_FILE="${RESULT_BROWSER}-${{ matrix.repetitions }}"
+            RESULT_FILE="${RESULT_BROWSER}-${RESULT_REP}"
           fi
           echo "RESULT_FILE=${RESULT_FILE}" >> "$GITHUB_ENV"
-          node test --browser=${{ matrix.browser }}${{ matrix.incognito == 'on' && ' --incognito' || '' }}${{ matrix.tor == 'on' && ' --tor' || '' }} --out=../${RESULT_FILE}.json
+          node test --browser=${{ matrix.browser }}${{ matrix.incognito == 'on' && ' --incognito' || '' }}${{ matrix.tor == 'on' && ' --tor' || '' }} --runner=${{ matrix.repetitions.runner }} --out=../${RESULT_FILE}.json
           # Tor Browser has no distinct incognito mode; also include on the private-modes page.
           if [ "${{ matrix.browser }}" = "tor" ] || [ "${{ matrix.browser }}" = "tor-nightly" ]; then
-            cp "../${RESULT_FILE}.json" "../${RESULT_BROWSER}-private-${{ matrix.repetitions }}.json"
-            cp "../${RESULT_FILE}.html" "../${RESULT_BROWSER}-private-${{ matrix.repetitions }}.html"
+            cp "../${RESULT_FILE}.json" "../${RESULT_BROWSER}-private-${RESULT_REP}.json"
+            cp "../${RESULT_FILE}.html" "../${RESULT_BROWSER}-private-${RESULT_REP}.html"
           fi
         timeout-minutes: 90
 
@@ -112,8 +121,8 @@ jobs:
           path: |
             ${{ env.RESULT_FILE }}.json
             ${{ env.RESULT_FILE }}.html
-            ${{ env.RESULT_BROWSER }}-private-${{ matrix.repetitions }}.json
-            ${{ env.RESULT_BROWSER }}-private-${{ matrix.repetitions }}.html
+            ${{ env.RESULT_BROWSER }}-private-${{ env.RESULT_REP }}.json
+            ${{ env.RESULT_BROWSER }}-private-${{ env.RESULT_REP }}.html
             failure.png
           if-no-files-found: warn
 
