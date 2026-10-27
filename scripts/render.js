@@ -459,21 +459,17 @@ const resultsKeys = [
   'unsupported', 'upgraded', 'cookieFound', 'leak detected'
 ];
 
-// Value-based fingerprint probes: same value across aggregated trials → pass
-// (stable / not leaking across those environments); differing values → fail.
+// Value-based fingerprint probes ({ value }) pass iff the value is identical
+// across aggregated trials. Legacy rows (e.g. fonts) already have `passed`.
 const scoreFingerprintingConsistency = (results) => {
   for (const test of results.all_tests || []) {
-    const fingerprinting = test.testResults?.fingerprinting;
-    if (!fingerprinting) {
-      continue;
-    }
-    for (const result of Object.values(fingerprinting)) {
-      if (!Object.prototype.hasOwnProperty.call(result, 'value')) {
+    for (const result of Object.values(test.testResults?.fingerprinting || {})) {
+      if (!('value' in result)) {
         continue;
       }
-      const values = Array.isArray(result.value) ? result.value : [result.value];
-      const canon = values.map(v => JSON.stringify(v));
-      result.passed = canon.every(v => v === canon[0]);
+      // After aggregateRepeatedTrials, value is an array; a lone trial stays scalar.
+      const values = [].concat(result.value);
+      result.passed = values.every(v => v === values[0]);
     }
   }
   return results;
