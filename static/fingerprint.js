@@ -8,32 +8,12 @@ const uaClientHintDefs = [
     description: 'UA-CH high-entropy architecture (e.g. "arm", "x86"). Differs across arm64 vs Intel CI SKUs.'
   },
   {
-    hint: 'bitness',
-    description: 'UA-CH high-entropy bitness (e.g. "64"). Usually uniform on modern desktop CI.'
-  },
-  {
     hint: 'platformVersion',
     description: 'UA-CH high-entropy OS version string. Can differ across macos-15 vs macos-26 runners.'
   },
   {
     hint: 'model',
     description: 'UA-CH high-entropy device model. Often empty on desktop; useful on mobile.'
-  },
-  {
-    hint: 'uaFullVersion',
-    description: 'UA-CH high-entropy full browser version (deprecated in favor of fullVersionList).'
-  },
-  {
-    hint: 'fullVersionList',
-    description: 'UA-CH high-entropy brand/version list. Browser identity, not machine SKU.'
-  },
-  {
-    hint: 'wow64',
-    description: 'UA-CH high-entropy WoW64 flag (32-bit process on 64-bit Windows).'
-  },
-  {
-    hint: 'formFactors',
-    description: 'UA-CH high-entropy form factors (e.g. Desktop, Mobile, Tablet, XR).'
   }
 ];
 
@@ -84,22 +64,6 @@ const getWebGlContext = () => {
 // distinguish browsers/devices. `probe` may be sync or async.
 // Every probe returns a string (`"undefined"` when the API is missing).
 const fingerprintTests = [
-  {
-    name: 'navigator.platform',
-    description: 'navigator.platform string (e.g. "MacIntel"). Weak SKU signal — often still "MacIntel" on Apple Silicon — but useful alongside UA-CH architecture.',
-    probe: () => String(navigator.platform)
-  },
-  {
-    name: 'storage.estimate',
-    description: 'navigator.storage.estimate() quota and usage in bytes. Weak SKU signal on homogeneous CI disks; may still differ across images.',
-    probe: async () => {
-      if (!navigator.storage?.estimate) {
-        return String(undefined);
-      }
-      const { quota, usage } = await navigator.storage.estimate();
-      return `quota=${String(quota)};usage=${String(usage)}`;
-    }
-  },
   {
     name: 'navigator.hardwareConcurrency',
     description: 'Approximate number of logical CPU cores reported by the browser. Often differs between arm64 and Intel hosts and is commonly used in browser fingerprints.',
