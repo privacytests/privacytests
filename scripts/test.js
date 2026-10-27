@@ -521,6 +521,20 @@ const runTestsStage2 = async ({ browserSession, categories }) => {
   return results;
 };
 
+// Fingerprint probes in a fresh browser (clean profile). Values only —
+// pass/fail is decided later when aggregating across runners/platforms.
+const runFingerprintTests = async (browserSession) => {
+  log('running fingerprint probes (fresh browser)');
+  await browserSession.browser.launch(true);
+  try {
+    const fingerprinting = await runPageTest(
+      browserSession, `${kIframeRootSame}/fingerprint.html`);
+    return { fingerprinting };
+  } finally {
+    await browserSession.browser.kill();
+  }
+};
+
 // Creates the browser object whether android, iOS, or desktop.
 const createBrowserObject = (config) => {
   return config.android ? new AndroidBrowser(config) : (config.ios ? new IOSBrowser(config) : new DesktopBrowser(config));
@@ -586,6 +600,7 @@ const runTests = async (
 
     let testResultsStage2 = null;
     let testResultsStage3 = null;
+    let testResultsFingerprint = null;
     if (!android && !ios) {
       await DesktopBrowser.setGlobalProxyUsageEnabled(true, mitmProxyPort);
       try {
@@ -600,9 +615,21 @@ const runTests = async (
       if (categories.includes('dns')) {
         testResultsStage3 = await runDnsTests(browserSession);
       }
+      if (categories.includes('fingerprint')) {
+        testResultsFingerprint = await deadlinePromise(
+          `${browserSpec.browser} fingerprint`,
+          runFingerprintTests(browserSession),
+          120000);
+      }
     }
 
     const testResults = Object.assign({}, testResultsStage1, testResultsStage2, testResultsStage3);
+    if (testResultsFingerprint?.fingerprinting) {
+      testResults.fingerprinting = {
+        ...testResults.fingerprinting,
+        ...testResultsFingerprint.fingerprinting
+      };
+    }
     const { browser, incognito, tor, nightly, extension } = browserSpec;
     const allTests = [{
       browser,
@@ -724,8 +751,9 @@ const readConfig = (commandLineData) => {
       'session', 'main', 'supplementary', 'misc', 'https', 'trackingCookies'
     ];
     // DNS leak tests need monitor-dns.js on the Mac; not used for mobile yet.
+    // Fingerprint probes use a fresh desktop browser instance.
     if (!config.android && !config.ios) {
-      config.categories.push('dns');
+      config.categories.push('dns', 'fingerprint');
     }
   }
   if (config.skip) {

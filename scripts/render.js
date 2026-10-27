@@ -219,23 +219,10 @@ const testBody = ({ passed, testFailed, tooltip, unsupported }) => {
 //  ${allUnsupported ? '&ndash;' : '&nbsp;'}
 const tooltipFunctions = {};
 
-// Creates a tooltip with fingerprinting test results
-// including the test expressions, the actual
-// and desired values, and whether the test passed.
-tooltipFunctions.fingerprinting = fingerprintingItem => {
-  const {
-    expression, desired_expression, actual_value,
-    desired_value, passed, worker
-  } = fingerprintingItem;
-  return `
-expression: ${expression}
-desired expression: ${desired_expression}
-actual value: ${actual_value}
-desired value: ${desired_value}
-passed: ${passed}
-${worker ? '[Worker]' : ''}
-  `.trim();
-};
+// Fingerprinting tooltips: value-based probes show collected values
+// (compared across platforms at aggregate time); legacy rows use simple.
+tooltipFunctions.fingerprinting = fingerprintingItem =>
+  tooltipFunctions.simple(fingerprintingItem);
 
 const joinIfArray = x => {
   const isArray = Array.isArray(x);
@@ -467,10 +454,30 @@ const resultsKeys = [
   'passed', 'testFailed',
   'readSameFirstParty', 'readDifferentFirstParty',
   'readSameSession', 'readDifferentSession',
-  'actual_value', 'desired_value',
+  'actual_value', 'desired_value', 'value',
   'IsTorExit', 'cloudflareDoH', 'nextDoH', 'result',
   'unsupported', 'upgraded', 'cookieFound', 'leak detected'
 ];
+
+// Value-based fingerprint probes: same value across aggregated trials → pass
+// (stable / not leaking across those environments); differing values → fail.
+const scoreFingerprintingConsistency = (results) => {
+  for (const test of results.all_tests || []) {
+    const fingerprinting = test.testResults?.fingerprinting;
+    if (!fingerprinting) {
+      continue;
+    }
+    for (const result of Object.values(fingerprinting)) {
+      if (!Object.prototype.hasOwnProperty.call(result, 'value')) {
+        continue;
+      }
+      const values = Array.isArray(result.value) ? result.value : [result.value];
+      const canon = values.map(v => JSON.stringify(v));
+      result.passed = canon.every(v => v === canon[0]);
+    }
+  }
+  return results;
+};
 
 // Finds any repeated trials of tests and aggregate the results
 // for a simpler rendering.
@@ -510,7 +517,7 @@ const aggregateRepeatedTrials = (results) => {
   }
   const resultsCopy = deepCopy(results);
   resultsCopy.all_tests = [...aggregatedResults.values()];
-  return resultsCopy;
+  return scoreFingerprintingConsistency(resultsCopy);
 };
 
 const getMergedResults = (dataFiles) => {
