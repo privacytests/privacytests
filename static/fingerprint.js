@@ -129,6 +129,51 @@ const fingerprintTests = [
     probe: () => String(Math.cos(10.000000000123))
   },
   {
+    // FingerprintJS OfflineAudioContext hash: triangle oscillator → dynamics compressor.
+    name: 'AudioContext fingerprint',
+    description: 'Sum of absolute samples from an OfflineAudioContext triangle+compressor render (FingerprintJS-style). Can differ across audio stacks / architectures.',
+    probe: async () => {
+      const OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      if (!OfflineCtx) {
+        return String(undefined);
+      }
+      const context = new OfflineCtx(1, 5000, 44100);
+      const oscillator = context.createOscillator();
+      oscillator.type = 'triangle';
+      oscillator.frequency.value = 10000;
+      const compressor = context.createDynamicsCompressor();
+      compressor.threshold.value = -50;
+      compressor.knee.value = 40;
+      compressor.ratio.value = 12;
+      compressor.attack.value = 0;
+      compressor.release.value = 0.25;
+      oscillator.connect(compressor);
+      compressor.connect(context.destination);
+      oscillator.start(0);
+      const buffer = await context.startRendering();
+      const data = buffer.getChannelData(0).subarray(4500);
+      let hash = 0;
+      for (let i = 0; i < data.length; ++i) {
+        hash += Math.abs(data[i]);
+      }
+      return String(hash);
+    }
+  },
+  {
+    name: 'AudioContext.baseLatency',
+    description: 'AudioContext.baseLatency in seconds. May differ across audio backends / OS / architecture.',
+    probe: () => {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) {
+        return String(undefined);
+      }
+      const ctx = new Ctx();
+      const latency = ctx.baseLatency;
+      ctx.close?.();
+      return String(latency);
+    }
+  },
+  {
     // Geometry-only Canvas2D sample (FingerprintJS renderGeometryImage): blend + winding,
     // no text/fonts. Returns a data URL so GPU/AA differences show up in the pixels.
     name: 'Canvas2D geometry',
