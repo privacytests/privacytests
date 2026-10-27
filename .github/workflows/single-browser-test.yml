@@ -63,6 +63,11 @@ jobs:
     defaults:
       run:
         working-directory: scripts
+    # Inputs are uniform for the run; only RESULT_REP varies across the matrix.
+    env:
+      RESULT_BROWSER: ${{ inputs.platform != 'desktop' && format('{0}-{1}{2}', inputs.platform, inputs.browser, inputs.nightly && '-nightly' || '') || format('{0}{1}{2}', inputs.browser, inputs.nightly && '-nightly' || '', inputs.tor && '-tor' || '') }}
+      RESULT_PRIVATE: ${{ inputs.platform == 'desktop' && (inputs.incognito || inputs.tor) && 'true' || 'false' }}
+      RESULT_REP: ${{ matrix.config.id }}
 
     steps:
       - uses: actions/checkout@v5
@@ -115,6 +120,12 @@ jobs:
 
       - name: Run tests
         run: |
+          if [ "$RESULT_PRIVATE" = "true" ]; then
+            RESULT_FILE="${RESULT_BROWSER}-private-${RESULT_REP}"
+          else
+            RESULT_FILE="${RESULT_BROWSER}-${RESULT_REP}"
+          fi
+          echo "RESULT_FILE=${RESULT_FILE}" >> "$GITHUB_ENV"
           if [ '${{ inputs.platform }}' = 'desktop' ]; then
             node test \
               --browser=${{ inputs.browser }} \
@@ -122,13 +133,13 @@ jobs:
               --incognito=${{ inputs.incognito }} \
               --tor=${{ inputs.tor }} \
               --runner=${{ matrix.config.runner }} \
-              --out=../results.json
+              --out=../${RESULT_FILE}.json
           else
             node test \
               --${{ inputs.platform }} \
               --browser=${{ inputs.browser }} \
               --nightly=${{ inputs.nightly }} \
-              --out=../results.json
+              --out=../${RESULT_FILE}.json
           fi
         timeout-minutes: 20
 
@@ -136,9 +147,19 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: results-${{ matrix.config.id }}-${{ matrix.config.runner }}
+          name: ${{ env.RESULT_FILE }}-results
           path: |
-            results.json
-            results.html
+            ${{ env.RESULT_FILE }}.json
+            ${{ env.RESULT_FILE }}.html
             failure.png
           if-no-files-found: warn
+
+  render-results:
+    needs: test
+    uses: ./.github/workflows/render-results.yml
+    with:
+      artifact-name: rendered-pages
+      # Whatever render-multiple wrote at repo root for this run.
+      paths: |
+        *.html
+        *.json
