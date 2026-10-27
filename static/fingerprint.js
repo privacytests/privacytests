@@ -126,9 +126,9 @@ const fingerprintTests = [
       return String(u8[3]);
     }
   },
-  // Math probes: inputs chosen (FingerprintJS / Tor #13018) so libm / FPU
-  // differences across arm vs x86 show up. Decimal String() round-trips finite
-  // floats, so ULP diffs remain visible.
+  // Math probes. Decimal String() round-trips finite floats (ULP diffs stay visible).
+  // sin/cos/tan: FingerprintJS / Tor samples — useful on non-Chromium; Chromium bundles these.
+  // tanh: since Chrome 148 uses host libm (OS fingerprint; may still match across mac SKUs).
   {
     name: 'Math.tan(-1e300)',
     description: 'Math.tan(-1e300) as a decimal string. Classic cross-architecture / libm fingerprint; often differs between arm64 and x86.',
@@ -143,6 +143,11 @@ const fingerprintTests = [
     name: 'Math.cos(10.000000000123)',
     description: 'Math.cos(10.000000000123) as a decimal string. FingerprintJS cosine sample; can differ with math library / architecture.',
     probe: () => String(Math.cos(10.000000000123))
+  },
+  {
+    name: 'Math.tanh(0.8)',
+    description: 'Math.tanh(0.8) as a decimal string. Since Chrome 148, tanh uses host libm and can differ across OS (mac / Linux / Windows); often identical across macOS SKUs.',
+    probe: () => String(Math.tanh(0.8))
   },
   {
     // FingerprintJS OfflineAudioContext hash: triangle oscillator → dynamics compressor.
