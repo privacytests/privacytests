@@ -90,6 +90,17 @@ const fingerprintTests = [
     probe: () => String(navigator.platform)
   },
   {
+    name: 'storage.estimate',
+    description: 'navigator.storage.estimate() quota and usage in bytes. Weak SKU signal on homogeneous CI disks; may still differ across images.',
+    probe: async () => {
+      if (!navigator.storage?.estimate) {
+        return String(undefined);
+      }
+      const { quota, usage } = await navigator.storage.estimate();
+      return `quota=${String(quota)};usage=${String(usage)}`;
+    }
+  },
+  {
     name: 'navigator.hardwareConcurrency',
     description: 'Approximate number of logical CPU cores reported by the browser. Often differs between arm64 and Intel hosts and is commonly used in browser fingerprints.',
     probe: () => String(navigator.hardwareConcurrency)
