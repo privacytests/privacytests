@@ -85,6 +85,11 @@ const getWebGlContext = () => {
 // Every probe returns a string (`"undefined"` when the API is missing).
 const fingerprintTests = [
   {
+    name: 'navigator.platform',
+    description: 'navigator.platform string (e.g. "MacIntel"). Weak SKU signal — often still "MacIntel" on Apple Silicon — but useful alongside UA-CH architecture.',
+    probe: () => String(navigator.platform)
+  },
+  {
     name: 'navigator.hardwareConcurrency',
     description: 'Approximate number of logical CPU cores reported by the browser. Often differs between arm64 and Intel hosts and is commonly used in browser fingerprints.',
     probe: () => String(navigator.hardwareConcurrency)
