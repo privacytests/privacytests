@@ -275,25 +275,33 @@ class DesktopBrowser {
     exec(`${openUrlCommand} "${url}"`);
   }
 
+  async _forceKill () {
+    console.log(`kill: force-killing ${this._processName}`);
+    try {
+      await execAsync(`pkill -9 -f ${JSON.stringify(this._processName)}`);
+    } catch (e) {
+      // Ignore exit 1: browser may already be gone.
+      if (e.code !== 1) {
+        throw e;
+      }
+    }
+  }
+
   // Close the browser.
   async kill () {
     console.log(`kill: ${this.browser} (${this._appName})`);
     if (this._defaults.usePkill) {
-      console.log(`kill: force-killing ${this._processName}`);
-      try {
-        await execAsync(`pkill -9 -f ${JSON.stringify(this._processName)}`);
-      } catch (e) {
-        // Ignore exit 1: browser may already be gone.
-        if (e.code !== 1) {
-          throw e;
-        }
-      }
+      await this._forceKill();
     } else {
       try {
         await execAsync(`osascript -e 'quit app "${this._appName}"'`);
       } catch (e) {
-        if (!String(e.stderr ?? e.message).includes('(-600)')) {
-          throw e;
+        const detail = String(e.stderr ?? e.message);
+        // (-600) = app not running. Anything else (e.g. AppleEvent timeout
+        // -1712) falls back to pkill so warm-up/teardown can't hang the job.
+        if (!detail.includes('(-600)')) {
+          console.log(`kill: osascript quit failed (${detail.trim()}); falling back to pkill`);
+          await this._forceKill();
         }
       }
     }
