@@ -289,8 +289,72 @@ const fingerprintTests = [
       return extensions.toSorted().join(',');
     }
   },
+  {
+    // Curated subset of FingerprintJS WebGL getParameter limits / ranges.
+    name: 'WebGL parameters',
+    description: 'Selected WebGL getParameter limits and ranges (MAX_*, ALIASED_*, bit depths). Often differs by GPU.',
+    probe: () => {
+      const gl = getWebGlContext();
+      if (!gl) {
+        return String(undefined);
+      }
+      const names = [
+        'VERSION', 'SHADING_LANGUAGE_VERSION',
+        'ALIASED_LINE_WIDTH_RANGE', 'ALIASED_POINT_SIZE_RANGE',
+        'MAX_TEXTURE_SIZE', 'MAX_CUBE_MAP_TEXTURE_SIZE', 'MAX_RENDERBUFFER_SIZE',
+        'MAX_VIEWPORT_DIMS', 'MAX_VERTEX_ATTRIBS', 'MAX_VERTEX_UNIFORM_VECTORS',
+        'MAX_VARYING_VECTORS', 'MAX_FRAGMENT_UNIFORM_VECTORS',
+        'MAX_VERTEX_TEXTURE_IMAGE_UNITS', 'MAX_TEXTURE_IMAGE_UNITS',
+        'MAX_COMBINED_TEXTURE_IMAGE_UNITS',
+        'RED_BITS', 'GREEN_BITS', 'BLUE_BITS', 'ALPHA_BITS', 'DEPTH_BITS', 'STENCIL_BITS'
+      ];
+      const parts = names.map(name => `${name}=${formatWebGlParam(gl.getParameter(gl[name]))}`);
+      const aniso =
+        gl.getExtension('EXT_texture_filter_anisotropic') ||
+        gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic') ||
+        gl.getExtension('MOZ_EXT_texture_filter_anisotropic');
+      if (aniso) {
+        parts.push(
+          `MAX_TEXTURE_MAX_ANISOTROPY_EXT=${formatWebGlParam(gl.getParameter(aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT))}`
+        );
+      }
+      return parts.join(';');
+    }
+  },
+  {
+    name: 'WebGL shader precisions',
+    description: 'WebGL getShaderPrecisionFormat for vertex/fragment × low/medium/high float/int (FingerprintJS-style).',
+    probe: () => {
+      const gl = getWebGlContext();
+      if (!gl) {
+        return String(undefined);
+      }
+      const parts = [];
+      for (const shader of ['VERTEX_SHADER', 'FRAGMENT_SHADER']) {
+        for (const precision of ['LOW_FLOAT', 'MEDIUM_FLOAT', 'HIGH_FLOAT', 'LOW_INT', 'MEDIUM_INT', 'HIGH_INT']) {
+          const fmt = gl.getShaderPrecisionFormat(gl[shader], gl[precision]);
+          parts.push(
+            fmt
+              ? `${shader}.${precision}=${fmt.rangeMin},${fmt.rangeMax},${fmt.precision}`
+              : `${shader}.${precision}=undefined`
+          );
+        }
+      }
+      return parts.join(';');
+    }
+  },
   ...uaClientHintProbes
 ];
+
+const formatWebGlParam = (v) => {
+  if (v == null) {
+    return String(v);
+  }
+  if (typeof v === 'object' && typeof v.length === 'number') {
+    return Array.from(v).join(',');
+  }
+  return String(v);
+};
 
 const runProbe = async ({ name, description, probe }) => {
   let value;
