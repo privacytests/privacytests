@@ -411,7 +411,6 @@ const content = (results, jsonFilename, title, nightly, incognito, testMyBrowser
         <div><img class="marker good" alt="Passed" src=""> = Passed privacy test</div>
         <div><img class="marker bad" alt="Failed" src=""> = Failed privacy test</div>
         <div><img class="marker na" alt="Unsupported" src=""> = No such feature</div>
-        <div><img class="marker test-failed" alt="Test failed" src=""> = Test failed</div>
       </div>
       <div class="banner" id="instructions">
         <div><span class="click-anywhere">(Click anywhere for more info.)</span></div>
