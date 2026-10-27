@@ -469,11 +469,9 @@ const scoreFingerprintingConsistency = (results) => {
       if (!('value' in result)) {
         continue;
       }
-      const randomizedFlags = [].concat(
-        Object.prototype.hasOwnProperty.call(result, 'randomized')
-          ? result.randomized
-          : false);
-      if (randomizedFlags.length > 0 && randomizedFlags.every(Boolean)) {
+      // Missing `randomized` (legacy rows) → treat as false.
+      const randomizedFlags = [].concat(result.randomized ?? false);
+      if (randomizedFlags.every(Boolean)) {
         result.passed = true;
         continue;
       }
