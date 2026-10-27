@@ -39,21 +39,6 @@ const fixOperaPreferences = async (file) => {
   console.log('fixed Opera preferences in', file);
 };
 
-// TODO: Make this a generic capability for any browser
-const fixChromePreferences = async (file) => {
-  const raw = await fsPromises.readFile(file);
-  const json = JSON.parse(raw);
-  if (json.privacy_sandbox === undefined) {
-    json.privacy_sandbox = {};
-  }
-  if (json.privacy_sandbox.m1 === undefined) {
-    json.privacy_sandbox.m1 = {};
-  }
-  json.privacy_sandbox.m1.row_notice_acknowledged = true;
-  await fsPromises.writeFile(file, JSON.stringify(json));
-  console.log('fixed Chrome preferences in', file);
-};
-
 const fixZenPreferences = async (file) => {
   let content = (await fsPromises.readFile(file)).toString();
   if (content.includes('zen.welcome-screen.seen')) {
@@ -201,9 +186,6 @@ class DesktopBrowser {
         } catch (e) {
           await fixOperaPreferences(path.join(this._profilePath, 'Preferences'));
         }
-      }
-      if (this.browser === 'chrome') {
-        await fixChromePreferences(path.join(this._profilePath, 'Default', 'Preferences'));
       }
       if (this.browser === 'zen') {
         await fixZenPreferences(path.join(this._profilePath, 'prefs.js'));
