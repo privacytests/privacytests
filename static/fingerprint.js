@@ -66,6 +66,20 @@ const uaClientHintProbes = uaClientHintDefs.map(({ hint, description }) => ({
   }
 }));
 
+let webGlContext;
+const getWebGlContext = () => {
+  if (webGlContext !== undefined) {
+    return webGlContext;
+  }
+  try {
+    const canvas = document.createElement('canvas');
+    webGlContext = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  } catch (e) {
+    webGlContext = null;
+  }
+  return webGlContext;
+};
+
 // Fingerprinting probes. Each entry exposes a named value that can help
 // distinguish browsers/devices. `probe` may be sync or async.
 // Every probe returns a string (`"undefined"` when the API is missing).
@@ -113,6 +127,36 @@ const fingerprintTests = [
     name: 'Math.cos(10.000000000123)',
     description: 'Math.cos(10.000000000123) as a decimal string. FingerprintJS cosine sample; can differ with math library / architecture.',
     probe: () => String(Math.cos(10.000000000123))
+  },
+  {
+    name: 'WebGL vendor/renderer',
+    description: 'Unmasked WebGL vendor and renderer (via WEBGL_debug_renderer_info when available). Strong GPU / SKU signal across arm vs Intel CI runners.',
+    probe: () => {
+      const gl = getWebGlContext();
+      if (!gl) {
+        return String(undefined);
+      }
+      const debug = gl.getExtension('WEBGL_debug_renderer_info');
+      const vendor = debug
+        ? gl.getParameter(debug.UNMASKED_VENDOR_WEBGL)
+        : gl.getParameter(gl.VENDOR);
+      const renderer = debug
+        ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)
+        : gl.getParameter(gl.RENDERER);
+      return `${String(vendor)} | ${String(renderer)}`;
+    }
+  },
+  {
+    name: 'WebGL extensions',
+    description: 'Supported WebGL extensions, sorted and joined with commas. Extension sets often differ by GPU / driver / OS.',
+    probe: () => {
+      const gl = getWebGlContext();
+      if (!gl) {
+        return String(undefined);
+      }
+      const extensions = gl.getSupportedExtensions() || [];
+      return extensions.toSorted().join(',');
+    }
   },
   ...uaClientHintProbes
 ];
