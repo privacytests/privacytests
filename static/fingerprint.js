@@ -129,6 +129,87 @@ const fingerprintTests = [
     probe: () => String(Math.cos(10.000000000123))
   },
   {
+    // Geometry-only Canvas2D sample (FingerprintJS renderGeometryImage): blend + winding,
+    // no text/fonts. Returns a data URL so GPU/AA differences show up in the pixels.
+    name: 'Canvas2D geometry',
+    description: 'Canvas 2D drawing fingerprint using multiply-blended arcs and evenodd winding (no text). Pixel output often differs across GPUs and OS compositors.',
+    probe: () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 122;
+      canvas.height = 110;
+      const ctx = canvas.getContext('2d');
+      if (!ctx || !canvas.toDataURL) {
+        return String(undefined);
+      }
+      ctx.globalCompositeOperation = 'multiply';
+      for (const [color, x, y] of [['#f2f', 40, 40], ['#2ff', 80, 40], ['#ff2', 60, 80]]) {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y, 40, 0, Math.PI * 2, true);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.fillStyle = '#f9c';
+      ctx.arc(60, 60, 60, 0, Math.PI * 2, true);
+      ctx.arc(60, 60, 20, 0, Math.PI * 2, true);
+      ctx.fill('evenodd');
+      return canvas.toDataURL();
+    }
+  },
+  {
+    // FingerprintJS2 / MaxMind WebGL image: shaded triangle, no text.
+    // (Current FingerprintJS dropped the image as unstable; we keep it for
+    // cross-SKU leak checks where GPU differences are the point.)
+    name: 'WebGL geometry',
+    description: 'WebGL shaded triangle drawn with simple vertex/fragment shaders, returned as a data URL. Pixel output often differs across GPUs.',
+    probe: () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 256;
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      if (!gl) {
+        return String(undefined);
+      }
+      const vsSource =
+        'attribute vec2 attrVertex;' +
+        'varying vec2 varyinTexCoordinate;' +
+        'uniform vec2 uniformOffset;' +
+        'void main(){' +
+        'varyinTexCoordinate=attrVertex+uniformOffset;' +
+        'gl_Position=vec4(attrVertex,0,1);' +
+        '}';
+      const fsSource =
+        'precision mediump float;' +
+        'varying vec2 varyinTexCoordinate;' +
+        'void main(){gl_FragColor=vec4(varyinTexCoordinate,0,1);}';
+      const compile = (type, source) => {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        return shader;
+      };
+      const program = gl.createProgram();
+      gl.attachShader(program, compile(gl.VERTEX_SHADER, vsSource));
+      gl.attachShader(program, compile(gl.FRAGMENT_SHADER, fsSource));
+      gl.linkProgram(program);
+      gl.useProgram(program);
+      const buffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      // Same triangle as FingerprintJS2 (3 components per vertex, attr is vec2).
+      gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array([-0.2, -0.9, 0, 0.4, -0.26, 0, 0, 0.732134444, 0]),
+        gl.STATIC_DRAW
+      );
+      const attr = gl.getAttribLocation(program, 'attrVertex');
+      gl.enableVertexAttribArray(attr);
+      gl.vertexAttribPointer(attr, 3, gl.FLOAT, false, 0, 0);
+      gl.uniform2f(gl.getUniformLocation(program, 'uniformOffset'), 1, 1);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 3);
+      return canvas.toDataURL();
+    }
+  },
+  {
     name: 'WebGL vendor/renderer',
     description: 'Unmasked WebGL vendor and renderer (via WEBGL_debug_renderer_info when available). Strong GPU / SKU signal across arm vs Intel CI runners.',
     probe: () => {
