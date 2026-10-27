@@ -32,6 +32,14 @@ on:
         required: true
         type: boolean
         default: false
+      runners:
+        description: Desktop runners (ignored for android/ios)
+        required: true
+        type: choice
+        options:
+          - latest
+          - all
+        default: latest
 
 env:
   CI: true
@@ -41,10 +49,16 @@ env:
 
 jobs:
   test:
-    runs-on: ${{ inputs.platform == 'desktop' && 'macos-latest' || fromJSON('["self-hosted","mobile"]') }}
+    strategy:
+      fail-fast: false
+      # Desktop: one job on macos-latest, or the same 5 OS×arch slots as desktop-tests.yml.
+      # Mobile: a single placeholder so the matrix still has one cell.
+      matrix:
+        config: ${{ inputs.platform != 'desktop' && fromJSON('[{"id":1,"runner":"mobile"}]') || (inputs.runners == 'all' && fromJSON('[{"id":1,"runner":"macos-26"},{"id":2,"runner":"macos-15"},{"id":3,"runner":"macos-26-intel"},{"id":4,"runner":"macos-15-intel"},{"id":5,"runner":"macos-26"}]') || fromJSON('[{"id":1,"runner":"macos-latest"}]')) }}
+    runs-on: ${{ inputs.platform == 'desktop' && matrix.config.runner || fromJSON('["self-hosted","mobile"]') }}
     # Share the mobile device with Mobile tests; desktop runs don't need that queue.
     concurrency:
-      group: ${{ inputs.platform == 'desktop' && format('single-desktop-{0}', github.run_id) || 'mobile-tests' }}
+      group: ${{ inputs.platform == 'desktop' && format('single-desktop-{0}-{1}', github.run_id, matrix.config.id) || 'mobile-tests' }}
       cancel-in-progress: false
     defaults:
       run:
@@ -70,6 +84,9 @@ jobs:
           if [ '${{ inputs.incognito }}' = 'true' ] && [ '${{ inputs.platform }}' != 'desktop' ]; then
             echo "Note: incognito is ignored for ${{ inputs.platform }}"
           fi
+          if [ '${{ inputs.runners }}' = 'all' ] && [ '${{ inputs.platform }}' != 'desktop' ]; then
+            echo "Note: runners=all is ignored for ${{ inputs.platform }} (self-hosted mobile only)"
+          fi
 
       - uses: actions/setup-node@v5
         with:
@@ -83,7 +100,7 @@ jobs:
       - name: Install mkcert
         if: inputs.platform == 'desktop'
         run: |
-          # macos-latest images ship with aws/tap pre-tapped but untrusted; brew warns on every command until trusted.
+          # macos images ship with aws/tap pre-tapped but untrusted; brew warns on every command until trusted.
           brew trust aws/tap
           brew install mkcert
           mkcert -install
@@ -104,6 +121,7 @@ jobs:
               --nightly=${{ inputs.nightly }} \
               --incognito=${{ inputs.incognito }} \
               --tor=${{ inputs.tor }} \
+              --runner=${{ matrix.config.runner }} \
               --out=../results.json
           else
             node test \
@@ -118,7 +136,7 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: results
+          name: results-${{ matrix.config.id }}-${{ matrix.config.runner }}
           path: |
             results.json
             results.html
