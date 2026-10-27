@@ -87,11 +87,14 @@ const mergeResultsFiles = (files) => {
 };
 
 // Per browser, keep only the most common reportedVersion (drops mid-run updates).
+// Safari is skipped: OS×arch runners often ship different patch builds (e.g. 26.6 vs
+// 26.6.2), and we still want all of them for cross-SKU / platformVersion checks.
 const removeMinorityVersions = (files) => {
   const parsed = files.map(filePath => {
     const test = JSON.parse(fs.readFileSync(filePath, 'utf8')).all_tests[0];
     return {
       filePath,
+      browser: test.browser,
       key: [
         test.browser,
         test.tor ? 'tor' : '',
@@ -101,6 +104,9 @@ const removeMinorityVersions = (files) => {
     };
   });
   return Object.values(groupBy(parsed, 'key')).flatMap(entries => {
+    if (entries[0].browser === 'safari') {
+      return entries.map(e => e.filePath);
+    }
     const byVersion = groupBy(entries, 'version');
     const best = maxBy(Object.keys(byVersion), v => byVersion[v].length);
     if (Object.keys(byVersion).length > 1) {
