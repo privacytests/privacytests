@@ -13,9 +13,8 @@ const macOSdefaultBrowserSettings = {
   chrome: {
     name: 'Google Chrome',
     nightlyName: 'Google Chrome Canary',
-    // Prefer pkill over AppleScript quit — osascript can AppleEvent-timeout
-    // (-1712) on GitHub-hosted runners (seen on macos-*-intel).
-    usePkill: true,
+    // Quit via AppleScript first (so Preferences flush); DesktopBrowser.kill()
+    // falls back to pkill on AppleEvent timeout (-1712) etc.
     privateFlag: 'incognito',
     basedOn: 'chromium',
     dmgUrl: 'https://dl.google.com/chrome/mac/universal/stable/GGRO/googlechrome.dmg',
