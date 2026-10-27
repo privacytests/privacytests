@@ -454,17 +454,27 @@ const resultsKeys = [
   'passed', 'testFailed',
   'readSameFirstParty', 'readDifferentFirstParty',
   'readSameSession', 'readDifferentSession',
-  'actual_value', 'desired_value', 'value',
+  'actual_value', 'desired_value', 'value', 'randomized',
   'IsTorExit', 'cloudflareDoH', 'nextDoH', 'result',
   'unsupported', 'upgraded', 'cookieFound', 'leak detected'
 ];
 
-// Value-based fingerprint probes ({ value }) pass iff the value is identical
-// across aggregated trials. Legacy rows (e.g. fonts) already have `passed`.
+// Value-based fingerprint probes:
+// - If every trial farbled across first parties (randomized), pass.
+// - Otherwise pass iff the (stable per-site) value matches across SKUs.
+// Legacy rows (e.g. fonts) already have `passed` and no `value`.
 const scoreFingerprintingConsistency = (results) => {
   for (const test of results.all_tests || []) {
     for (const result of Object.values(test.testResults?.fingerprinting || {})) {
       if (!('value' in result)) {
+        continue;
+      }
+      const randomizedFlags = [].concat(
+        Object.prototype.hasOwnProperty.call(result, 'randomized')
+          ? result.randomized
+          : false);
+      if (randomizedFlags.length > 0 && randomizedFlags.every(Boolean)) {
+        result.passed = true;
         continue;
       }
       // After aggregateRepeatedTrials, value is an array; a lone trial stays scalar.

@@ -48,7 +48,8 @@
     this data, will build a fingerprint that may uniquely identify you among web users.
     Browsers can introduce countermeasures, such as minimizing the distinguishing information
     disclosed by certain web APIs so your browser is harder to pick out from the crowd
-    (so-called 'fingerprinting resistance').`,
+    (so-called 'fingerprinting resistance'). Some browsers may also randomize values
+    to make it hard to track you across websites.`,
   tooltipType: fingerprinting
 
 - category: query

@@ -521,15 +521,46 @@ const runTestsStage2 = async ({ browserSession, categories }) => {
   return results;
 };
 
-// Fingerprint probes in a fresh browser (clean profile). Values only —
-// pass/fail is decided later when aggregating across runners/platforms.
+// Merge per-domain fingerprint probe results. If a probe's value differs
+// across first parties, the browser is farbling/randomizing → mark randomized.
+const mergeFingerprintDomainResults = (perDomain) => {
+  const names = new Set(perDomain.flatMap(results => Object.keys(results)));
+  const merged = {};
+  for (const name of names) {
+    const items = perDomain.map(results => results[name]).filter(Boolean);
+    if (items.length === 0) {
+      continue;
+    }
+    const values = items.map(item => item.value);
+    const randomized = new Set(values).size > 1;
+    merged[name] = {
+      description: items[0].description,
+      // Keep all domain values when farbled so tooltips show the spread.
+      value: randomized ? values : values[0],
+      randomized,
+      ...(items.some(item => item.error)
+        ? { error: items.map(item => item.error).filter(Boolean).join('; ') }
+        : {})
+    };
+  }
+  return merged;
+};
+
+// Fingerprint probes in a fresh browser (clean profile), on three first-party
+// domains. Farbling (different values per domain) → pass at aggregate time;
+// otherwise pass iff the value is stable across runners/SKUs.
 const runFingerprintTests = async (browserSession) => {
-  log('running fingerprint probes (fresh browser)');
+  const fingerprintRoots = [kIframeRootSame, kIframeRootDifferent, kIframeRootThird];
+  log('running fingerprint probes (fresh browser)', { domains: fingerprintRoots.length });
   await browserSession.browser.launch(true);
   try {
-    const fingerprinting = await runPageTest(
-      browserSession, `${kIframeRootSame}/fingerprint.html`);
-    return { fingerprinting };
+    const perDomain = [];
+    for (const root of fingerprintRoots) {
+      const url = `${root}/fingerprint.html`;
+      log('fingerprint domain', { url });
+      perDomain.push(await runPageTest(browserSession, url));
+    }
+    return { fingerprinting: mergeFingerprintDomainResults(perDomain) };
   } finally {
     await browserSession.browser.kill();
   }
@@ -619,7 +650,7 @@ const runTests = async (
         testResultsFingerprint = await deadlinePromise(
           `${browserSpec.browser} fingerprint`,
           runFingerprintTests(browserSession),
-          120000);
+          240000);
       }
     }
 
