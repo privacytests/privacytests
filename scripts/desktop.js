@@ -234,15 +234,13 @@ class DesktopBrowser {
     this._extensionAcknowledged = true;
   }
 
-  // Get the browser version.
+  // Get the browser version from Info.plist (reliable right after install;
+  // unlike mdls, does not depend on Spotlight indexing).
   async version () {
     if (!this._version) {
-      this._version = execSync(`mdls -name kMDItemVersion -raw "${this._appPath}"`).toString();
-    }
-    if (this.browser === 'brave') {
-      // Weird brave thing. When the version is 1.31.87, kMDItemVersion is 95.1.31.87,
-      // where "95" refers to the Chromium major version.
-      this._version = this._version.split('.').slice(1).join('.');
+      this._version = execSync(
+        `defaults read "${this._appPath}/Contents/Info" CFBundleShortVersionString`
+      ).toString().trim();
     }
     return this._version;
   }
