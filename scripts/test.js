@@ -436,7 +436,7 @@ const runTrackingCookieTest = async (browserSession) => {
 // Run the first stage of privacy tests. Returns
 // a map of test types to test result maps. Such as
 // `
-// { "fingerprinting" : { "window.screen.width" : { /* results */ }, ... },
+// { "fingerprinting" : { "System font detection" : { /* results */ }, ... },
 //   "misc" : { ... },
 //   "https" : { ... },
 //   "navigation" : { ... },
