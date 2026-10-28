@@ -86,77 +86,74 @@ const readBoolDefault = (domain, key) => {
   }
 };
 
-const flushPrefs = () => {
-  try {
-    run('killall cfprefsd');
-  } catch (e) {
-    // Non-fatal; prefs usually still apply for newly launched apps.
+// `defaults write` already notifies cfprefsd. Killing cfprefsd right after a
+// write races and can drop the change (seen on GitHub Actions runners).
+const sleepMs = (ms) => {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    // Busy-wait; avoids SharedArrayBuffer / child_process for a short pause.
   }
 };
 
-// Write a paired Accessibility + universalaccess bool; verify via universalaccess
-// (Accessibility keys are flaky on some CI images after cfprefsd flush).
+const readAccessibilityBool = (accessibilityKey, universalAccessKey) =>
+  readBoolDefault('com.apple.universalaccess', universalAccessKey) ||
+  readBoolDefault('com.apple.Accessibility', accessibilityKey);
+
+// Write a paired Accessibility + universalaccess bool; verify via either domain.
 const setAccessibilityBool = ({
   name,
   accessibilityKey,
   universalAccessKey,
-  enabled,
-  readDomain = 'com.apple.universalaccess',
-  readKey
+  enabled
 }) => {
   const flag = enabled ? '1' : '0';
   const bool = enabled ? 'true' : 'false';
   run(`defaults write com.apple.Accessibility ${accessibilityKey} -int ${flag}`);
   run(`defaults write com.apple.universalaccess ${universalAccessKey} -bool ${bool}`);
-  flushPrefs();
-  const actual = readBoolDefault(readDomain, readKey || universalAccessKey);
-  if (actual !== Boolean(enabled)) {
-    throw new Error(`Failed to set ${name} to ${enabled} (now ${actual})`);
+  let actual;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    if (attempt > 0) {
+      sleepMs(200);
+    }
+    actual = readAccessibilityBool(accessibilityKey, universalAccessKey);
+    if (actual === Boolean(enabled)) {
+      return actual;
+    }
   }
-  return actual;
+  throw new Error(`Failed to set ${name} to ${enabled} (now ${actual})`);
 };
 
 // Accessibility → Reduce Motion. Browsers: prefers-reduced-motion.
 const getReducedMotion = () =>
-  readBoolDefault('com.apple.Accessibility', 'ReduceMotionEnabled') ||
-  readBoolDefault('com.apple.universalaccess', 'reduceMotion');
+  readAccessibilityBool('ReduceMotionEnabled', 'reduceMotion');
 
 const setReducedMotion = (enabled) => setAccessibilityBool({
   name: 'Reduce Motion',
   accessibilityKey: 'ReduceMotionEnabled',
   universalAccessKey: 'reduceMotion',
-  enabled,
-  readDomain: 'com.apple.universalaccess',
-  readKey: 'reduceMotion'
+  enabled
 });
 
 // Accessibility → Reduce Transparency. Browsers: prefers-reduced-transparency.
 const getReducedTransparency = () =>
-  readBoolDefault('com.apple.Accessibility', 'EnhancedBackgroundContrastEnabled') ||
-  readBoolDefault('com.apple.universalaccess', 'reduceTransparency');
+  readAccessibilityBool('EnhancedBackgroundContrastEnabled', 'reduceTransparency');
 
 const setReducedTransparency = (enabled) => setAccessibilityBool({
   name: 'Reduce Transparency',
   accessibilityKey: 'EnhancedBackgroundContrastEnabled',
   universalAccessKey: 'reduceTransparency',
-  enabled,
-  // Prefer universalaccess for verify; Accessibility key name is less obvious.
-  readDomain: 'com.apple.universalaccess',
-  readKey: 'reduceTransparency'
+  enabled
 });
 
 // Accessibility → Increase Contrast. Browsers: prefers-contrast: more.
 const getIncreaseContrast = () =>
-  readBoolDefault('com.apple.Accessibility', 'DarkenSystemColors') ||
-  readBoolDefault('com.apple.universalaccess', 'increaseContrast');
+  readAccessibilityBool('DarkenSystemColors', 'increaseContrast');
 
 const setIncreaseContrast = (enabled) => setAccessibilityBool({
   name: 'Increase Contrast',
   accessibilityKey: 'DarkenSystemColors',
   universalAccessKey: 'increaseContrast',
-  enabled,
-  readDomain: 'com.apple.universalaccess',
-  readKey: 'increaseContrast'
+  enabled
 });
 
 // Keyboard input source via Text Input Sources (setkeyboardlayout.swift).
