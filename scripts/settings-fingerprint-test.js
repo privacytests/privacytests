@@ -18,7 +18,7 @@ const settingsFingerprintConfigs = [
   {
     id: 'A',
     timezone: 'Europe/Paris',
-    languages: ['en', 'fr'],
+    languages: ['es', 'fr'],
     // AZERTY vs QWERTZ — distinguishable via Keyboard Map API.
     keyboardLayout: 'French',
     screenSize: screenSizeA,
@@ -29,7 +29,7 @@ const settingsFingerprintConfigs = [
   {
     id: 'B',
     timezone: 'Europe/Berlin',
-    languages: ['en', 'de'],
+    languages: ['es', 'de'],
     keyboardLayout: 'German',
     // Filled in at run time: next enumerated mode smaller than A in both dims.
     screenSize: null,

@@ -10,7 +10,7 @@ const settingsFingerprintTests = [
   },
   {
     name: 'navigator.languages',
-    description: 'navigator.languages as JSON. Under settings A/B the OS preferred list is en,fr vs en,de. A stable value (e.g. only English) means the browser is censoring additional languages; a changing list means the second language is exposed.',
+    description: 'navigator.languages as JSON. Under settings A/B the OS preferred list is es,fr vs es,de (Spanish primary so a stuck en-US shows the setter did not take effect). Stable Spanish-only means the second language is hidden; fr vs de in the list means the secondary preference leaks.',
     probe: () => JSON.stringify(Array.from(navigator.languages || []))
   },
   {
