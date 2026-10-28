@@ -422,7 +422,7 @@ const runTrackingCookieTest = async (browserSession) => {
 // Run the first stage of privacy tests. Returns
 // a map of test types to test result maps. Such as
 // `
-  // { "device_fingerprinting" : { "navigator.hardwareConcurrency" : { /* results */ }, ... },
+  // { "device_fingerprinting" : { "Logical CPU cores" : { /* results */ }, ... },
 //   "misc" : { ... },
 //   "https" : { ... },
 //   "navigation" : { ... },

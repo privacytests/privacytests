@@ -4,38 +4,38 @@
 // farbled per first-party). The harness runs this page under settings A and B.
 const settingsFingerprintTests = [
   {
-    name: 'timeZone',
-    description: 'IANA time zone from Intl.DateTimeFormat().resolvedOptions().timeZone. Should not change when the OS time zone changes (or should be farbled per site).',
+    name: 'Time zone',
+    description: 'Time zone leaked by the browser through the DateTimeFormat API.',
     probe: () => String(Intl.DateTimeFormat().resolvedOptions().timeZone)
   },
   {
-    name: 'navigator.languages',
-    description: 'navigator.languages as JSON. Under settings A/B the OS preferred list is es,fr vs es,de (Spanish primary so a stuck en-US shows the setter did not take effect). Stable Spanish-only means the second language is hidden; fr vs de in the list means the secondary preference leaks.',
+    name: 'Preferred languages',
+    description: 'Your system language list leaked by the browser through the navigator.languages API.',
     probe: () => JSON.stringify(Array.from(navigator.languages || []))
   },
   {
-    name: 'prefers-reduced-motion',
+    name: 'Reduced motion preference',
     description: 'matchMedia("(prefers-reduced-motion: reduce)") → "reduce" or "no-preference". Under settings A/B the OS Reduce Motion toggle is on vs off. Stable value means the preference is not exposed (or is spoofed); changing means it leaks.',
     probe: () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
       ? 'reduce'
       : 'no-preference'
   },
   {
-    name: 'prefers-reduced-transparency',
+    name: 'Reduced transparency preference',
     description: 'matchMedia("(prefers-reduced-transparency: reduce)") → "reduce" or "no-preference". Under settings A/B the OS Reduce Transparency toggle is on vs off.',
     probe: () => window.matchMedia('(prefers-reduced-transparency: reduce)').matches
       ? 'reduce'
       : 'no-preference'
   },
   {
-    name: 'prefers-contrast',
+    name: 'Display contrast preference',
     description: 'matchMedia("(prefers-contrast: more)") → "more" or "no-preference". Under settings A/B the OS Increase Contrast toggle is on vs off.',
     probe: () => window.matchMedia('(prefers-contrast: more)').matches
       ? 'more'
       : 'no-preference'
   },
   {
-    name: 'keyboardLayoutMap',
+    name: 'Keyboard layout',
     description: 'Subset of navigator.keyboard.getLayoutMap() for keys that differ across French (AZERTY) vs German (QWERTZ). Chromium-oriented; `"undefined"` when the Keyboard Map API is missing. Stable across layouts means the OS keyboard layout is not exposed.',
     probe: async () => {
       if (!navigator.keyboard?.getLayoutMap) {
@@ -55,38 +55,38 @@ const settingsFingerprintTests = [
     }
   },
   {
-    name: 'screen.width',
-    description: 'screen.width in CSS pixels. Under settings A/B the display is set to 1920x1080 vs the next available mode smaller in both dimensions. Stable (e.g. rounded) values mean the exact OS resolution is not exposed.',
+    name: 'Screen width',
+    description: 'Screen width leaked by the browser through the screen API.',
     probe: () => String(screen.width)
   },
   {
-    name: 'screen.height',
-    description: 'screen.height in CSS pixels. Paired with screen.width under 1920x1080 vs next-smaller available mode A/B settings.',
+    name: 'Screen height',
+    description: 'Screen height leaked by the browser through the screen API.',
     probe: () => String(screen.height)
   },
   {
-    name: 'screen.availWidth',
-    description: 'screen.availWidth in CSS pixels. Under settings A/B the Dock is at bottom vs left (autohide off). Left Dock should shrink availWidth; stable values mean OS chrome insets are not exposed.',
+    name: 'Available screen width',
+    description: 'Available screen width leaked by the browser through the screen API.',
     probe: () => String(screen.availWidth)
   },
   {
-    name: 'screen.availHeight',
-    description: 'screen.availHeight in CSS pixels. Bottom Dock should shrink availHeight vs left Dock. Paired with screen.availWidth under Dock position A/B.',
+    name: 'Available screen height',
+    description: 'Available screen height leaked by the browser through the screen API.',
     probe: () => String(screen.availHeight)
   },
   {
-    name: 'screen.availLeft',
-    description: 'screen.availLeft in CSS pixels. Typically 0 with a bottom Dock and > 0 with a left Dock. Stable 0 across A/B can mean the inset is spoofed or unavailable.',
+    name: 'Available screen left',
+    description: 'Available screen left leaked by the browser through the screen API.',
     probe: () => String(screen.availLeft)
   },
   {
-    name: 'screen.availTop',
-    description: 'screen.availTop in CSS pixels. Under settings A/B the menu bar is shown vs autohide (_HIHideMenuBar). Shown should yield availTop > 0; autohide typically yields 0. Stable values mean the top OS inset is not exposed.',
+    name: 'Available screen top',
+    description: 'Available screen top leaked by the browser through the screen API.',
     probe: () => String(screen.availTop)
   },
   {
-    name: 'systemFont',
-    description: 'Whether a custom installed font (Monoton) appears to be applied via DOM layout. Under settings A/B the font is installed vs removed. Same metrics across both means the browser is not leaking custom font presence; differing means it is detectable.',
+    name: 'User-installed font (DOM)',
+    description: 'Checks if a custom installed font can be detected via DOM layout.',
     probe: () => {
       // Same text with Monoton first; if Monoton applies, both widths match.
       // If it does not, monospace vs sans-serif fallbacks diverge.
@@ -110,8 +110,8 @@ const settingsFingerprintTests = [
     }
   },
   {
-    name: 'canvasTextFont',
-    description: 'Canvas 2D fillText with Monoton vs monospace/sans-serif fallbacks. Same install/remove A/B as systemFont. Identical bitmaps mean Monoton was applied (detected); divergent bitmaps mean fallbacks (not-detected).',
+    name: 'User-installed font (canvas)',
+    description: 'Checks if a custom installed font can be detected via canvas rendering.',
     probe: async () => {
       const text = 'font fingerprinting';
       const size = '48px';

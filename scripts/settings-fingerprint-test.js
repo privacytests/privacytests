@@ -24,9 +24,9 @@ const settingsFingerprintConfigs = [
     screenSize: screenSizeA,
     // Absent first, then install — avoids stale font-cache after deletion.
     testFontInstalled: false,
-    // Dock bottom vs left (autohide forced off) for screen.avail* probes.
+    // Dock bottom vs left (autohide forced off) for Available screen * probes.
     dockOrientation: 'bottom',
-    // Menu bar shown vs autohide (_HIHideMenuBar) for screen.availTop.
+    // Menu bar shown vs autohide (_HIHideMenuBar) for Available screen top.
     hideMenuBar: false,
     reducedMotion: true,
     reducedTransparency: true,
@@ -65,22 +65,22 @@ const settingLabel = ({
 
 // Each probe only cares about one A/B dimension — tooltips should show that alone.
 const relevantSettingForProbe = {
-  timeZone: ({ timezone }) => timezone,
-  'navigator.languages': ({ languages }) => languages.join(','),
-  'prefers-reduced-motion': ({ reducedMotion }) => String(reducedMotion),
-  'prefers-reduced-transparency': ({ reducedTransparency }) => String(reducedTransparency),
-  'prefers-contrast': ({ increaseContrast }) => String(increaseContrast),
-  keyboardLayoutMap: ({ keyboardLayout }) => keyboardLayout,
-  'screen.width': ({ screenSize }) =>
+  'Time zone': ({ timezone }) => timezone,
+  'Preferred languages': ({ languages }) => languages.join(','),
+  'Reduced motion preference': ({ reducedMotion }) => String(reducedMotion),
+  'Reduced transparency preference': ({ reducedTransparency }) => String(reducedTransparency),
+  'Display contrast preference': ({ increaseContrast }) => String(increaseContrast),
+  'Keyboard layout': ({ keyboardLayout }) => keyboardLayout,
+  'Screen width': ({ screenSize }) =>
     (screenSize ? `${screenSize.width}x${screenSize.height}` : null),
-  'screen.height': ({ screenSize }) =>
+  'Screen height': ({ screenSize }) =>
     (screenSize ? `${screenSize.width}x${screenSize.height}` : null),
-  'screen.availWidth': ({ dockOrientation }) => dockOrientation,
-  'screen.availHeight': ({ dockOrientation }) => dockOrientation,
-  'screen.availLeft': ({ dockOrientation }) => dockOrientation,
-  'screen.availTop': ({ hideMenuBar }) => String(hideMenuBar),
-  systemFont: ({ testFontInstalled }) => String(testFontInstalled),
-  canvasTextFont: ({ testFontInstalled }) => String(testFontInstalled)
+  'Available screen width': ({ dockOrientation }) => dockOrientation,
+  'Available screen height': ({ dockOrientation }) => dockOrientation,
+  'Available screen left': ({ dockOrientation }) => dockOrientation,
+  'Available screen top': ({ hideMenuBar }) => String(hideMenuBar),
+  'User-installed font (DOM)': ({ testFontInstalled }) => String(testFontInstalled),
+  'User-installed font (canvas)': ({ testFontInstalled }) => String(testFontInstalled)
 };
 
 const screenSizeKey = ({ width, height }) => `${width}x${height}`;
@@ -273,8 +273,8 @@ const runSettingsFingerprintTests = async (browserSession, { runPageTest }) => {
     // Don't score screen probes when we never varied the display — identical
     // A/B values would look like a false privacy pass.
     if (!varyScreenSize) {
-      delete merged['screen.width'];
-      delete merged['screen.height'];
+      delete merged['Screen width'];
+      delete merged['Screen height'];
     }
     return { settings_fingerprinting: merged };
   } finally {

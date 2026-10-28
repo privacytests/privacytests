@@ -10,10 +10,6 @@ const uaClientHintDefs = [
   {
     hint: 'platformVersion',
     description: 'UA-CH high-entropy OS version string. Can differ across macos-15 vs macos-26 runners.'
-  },
-  {
-    hint: 'model',
-    description: 'UA-CH high-entropy device model. Often empty on desktop; useful on mobile.'
   }
 ];
 
@@ -54,22 +50,22 @@ const uaClientHintProbes = uaClientHintDefs.map(({ hint, description }) => ({
 // mostly `"undefined"` and not realistic hardware signals.
 const deviceFingerprintTests = [
   {
-    name: 'navigator.hardwareConcurrency',
-    description: 'Approximate number of logical CPU cores reported by the browser. Often differs between arm64 and Intel hosts and is commonly used in browser fingerprints.',
+    name: 'Logical CPU cores',
+    description: 'Approximate number of logical CPU cores leaked by the browser through the hardwareConcurrency API.',
     probe: () => String(navigator.hardwareConcurrency)
   },
   {
-    name: 'navigator.deviceMemory',
-    description: 'Approximate device RAM in GiB (Device Memory API), coarsened to a power of two. Chromium-only; `"undefined"` in browsers that do not implement the API.',
+    name: 'Device memory',
+    description: 'Approximate device RAM in GB leaked by the browser through the Device Memory API.',
     probe: () => String(navigator.deviceMemory)
   },
   {
-    name: 'jsHeapSizeLimit',
-    description: 'V8 JavaScript heap size limit in bytes (`performance.memory.jsHeapSizeLimit`). Chromium-only; `"undefined"` when unavailable. Correlates with available memory and is a known high-entropy fingerprinting signal.',
+    name: 'JavaScript heap size limit',
+    description: 'V8 JavaScript heap size limit in bytes leaked by the browser through the performance.memory.jsHeapSizeLimit API.',
     probe: () => String(performance.memory?.jsHeapSizeLimit)
   },
   {
-    name: 'architecture (NaN)',
+    name: 'Math: Infinity - Infinity',
     description: 'FingerprintJS-style architecture probe: byte 3 of a Float32 NaN payload after `Infinity - Infinity`. Differs between CPU architectures (e.g. arm64 vs x86). Kept as a raw byte (not String(NaN)) so the payload is visible.',
     probe: () => {
       const f = new Float32Array(1);
@@ -84,28 +80,28 @@ const deviceFingerprintTests = [
   // tanh: since Chrome 148 uses host libm (OS fingerprint; may still match across mac SKUs).
   {
     name: 'Math.tan(-1e300)',
-    description: 'Math.tan(-1e300) as a decimal string. Classic cross-architecture / libm fingerprint; often differs between arm64 and x86.',
+    description: 'Checks if your browser leaks your CPU architecture via a built-in math function.',
     probe: () => String(Math.tan(-1e300))
   },
   {
     name: 'Math.sin(-1e300)',
-    description: 'Math.sin(-1e300) as a decimal string. Same class of transcendental edge-case as tan; useful arm vs x86 signal.',
+    description: 'Checks if your browser leaks your CPU architecture via a built-in math function.',
     probe: () => String(Math.sin(-1e300))
   },
   {
     name: 'Math.cos(10.000000000123)',
-    description: 'Math.cos(10.000000000123) as a decimal string. FingerprintJS cosine sample; can differ with math library / architecture.',
+    description: 'Checks if your browser leaks your CPU architecture via a built-in math function.',
     probe: () => String(Math.cos(10.000000000123))
   },
   {
     name: 'Math.tanh(0.8)',
-    description: 'Math.tanh(0.8) as a decimal string. Since Chrome 148, tanh uses host libm and can differ across OS (mac / Linux / Windows); often identical across macOS SKUs.',
+    description: 'Checks if your browser leaks your CPU architecture via a built-in math function.',
     probe: () => String(Math.tanh(0.8))
   },
   {
     // FingerprintJS OfflineAudioContext hash: triangle oscillator → dynamics compressor.
     name: 'AudioContext fingerprint',
-    description: 'Sum of absolute samples from an OfflineAudioContext triangle+compressor render (FingerprintJS-style). Can differ across audio stacks / architectures.',
+    description: 'Your browser can be distinguished from others by the system\'s audio context fingerprint.',
     probe: async () => {
       const OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
       if (!OfflineCtx) {
@@ -134,8 +130,8 @@ const deviceFingerprintTests = [
     }
   },
   {
-    name: 'AudioContext.baseLatency',
-    description: 'AudioContext.baseLatency in seconds. May differ across audio backends / OS / architecture.',
+    name: 'AudioContext base latency',
+    description: 'AudioContext base latency in seconds leaked by the browser through the baseLatency API.',
     probe: () => {
       const Ctx = window.AudioContext || window.webkitAudioContext;
       if (!Ctx) {
@@ -151,7 +147,7 @@ const deviceFingerprintTests = [
     // Geometry-only Canvas2D sample (FingerprintJS renderGeometryImage): blend + winding,
     // no text/fonts. Returns a data URL so GPU/AA differences show up in the pixels.
     name: 'Canvas2D geometry',
-    description: 'Canvas 2D drawing fingerprint using multiply-blended arcs and evenodd winding (no text). Pixel output often differs across GPUs and OS compositors.',
+    description: 'Tests if your browser leaks behavior of your GPU via the Canvas 2D drawing API.',
     probe: () => {
       const canvas = document.createElement('canvas');
       canvas.width = 122;
