@@ -15,24 +15,52 @@ const runScreenSizeTool = (...arguments_) => {
   return run(`swift ${JSON.stringify(screenSizeScript)} ${args}`).trim();
 };
 
+// Browsers resolve the default zone via CF/ICU from /etc/localtime, not
+// systemsetup — so get/set only through that symlink.
 const getTimezone = () => {
-  // "Time Zone: Europe/Paris" or similar.
-  const out = run('sudo systemsetup -gettimezone');
-  const match = out.match(/Time Zone:\s*(\S+)/i);
+  let link;
+  try {
+    link = run('readlink /etc/localtime').trim();
+  } catch (e) {
+    throw new Error(`Could not read /etc/localtime: ${e.message || e}`);
+  }
+  const match = link.match(/zoneinfo\/(.+)$/);
   if (!match) {
-    throw new Error(`Could not parse timezone from: ${out.trim()}`);
+    throw new Error(`Could not parse timezone from /etc/localtime -> ${link}`);
   }
   return match[1];
 };
 
-const setTimezone = (timezone) => {
-  // Network time can fight manual timezone changes on some images.
-  try {
-    run('sudo systemsetup -setusingnetworktime off');
-  } catch (e) {
-    // Non-fatal; settimezone may still work.
+const zoneinfoPath = (timezone) => {
+  for (const root of ['/var/db/timezone/zoneinfo', '/usr/share/zoneinfo']) {
+    const candidate = `${root}/${timezone}`;
+    try {
+      run(`test -f ${JSON.stringify(candidate)}`);
+      return candidate;
+    } catch (e) {
+      // try next root
+    }
   }
-  run(`sudo systemsetup -settimezone ${JSON.stringify(timezone)}`);
+  return null;
+};
+
+const setTimezone = (timezone) => {
+  // Keep auto/network time from fighting the manual symlink on CI images.
+  try {
+    run('sudo systemsetup -setusingnetworktime off 2>/dev/null');
+  } catch (e) {
+    // Non-fatal.
+  }
+  try {
+    run('sudo defaults write /Library/Preferences/com.apple.timezone.auto Active -bool false');
+  } catch (e) {
+    // Non-fatal.
+  }
+  const zoneFile = zoneinfoPath(timezone);
+  if (!zoneFile) {
+    throw new Error(`No zoneinfo file found for ${timezone}`);
+  }
+  run(`sudo ln -sf ${JSON.stringify(zoneFile)} /etc/localtime`);
   const actual = getTimezone();
   if (actual !== timezone) {
     throw new Error(`Failed to set timezone to ${timezone} (now ${actual})`);
