@@ -301,9 +301,11 @@ class DesktopBrowser {
     const prefsPath = path.join(this._profilePath, 'prefs.js');
     const buf = await fsPromises.readFile(prefsPath);
     const rawString = buf.toString();
-    const regex = new RegExp(`user_pref\\("${prefName}",\\s?".*?"\\)`, 'g');
+    // JSON.stringify keeps strings quoted and leaves numbers/booleans bare
+    // (needed for prefs like ui.prefersReducedMotion).
+    const regex = new RegExp(`user_pref\\("${prefName}",\\s*[\\s\\S]*?\\)`, 'g');
+    const finalPrefLine = `user_pref("${prefName}", ${JSON.stringify(prefValue)})`;
     let finalString;
-    const finalPrefLine = `user_pref("${prefName}", "${prefValue}")`;
     if (rawString.match(regex)) {
       finalString = rawString.replace(regex, finalPrefLine);
     } else {

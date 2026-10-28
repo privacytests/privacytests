@@ -65,9 +65,39 @@ const setLanguages = (languages) => {
   return actual;
 };
 
+// Accessibility → Reduce Motion. Browsers expose this as prefers-reduced-motion.
+const getReducedMotion = () => {
+  try {
+    const out = run('defaults read com.apple.Accessibility ReduceMotionEnabled').trim();
+    return out === '1' || out.toLowerCase() === 'true';
+  } catch (e) {
+    return false;
+  }
+};
+
+const setReducedMotion = (enabled) => {
+  const flag = enabled ? '1' : '0';
+  const bool = enabled ? 'true' : 'false';
+  // Both domains are consulted depending on macOS / app; set both.
+  run(`defaults write com.apple.Accessibility ReduceMotionEnabled -int ${flag}`);
+  run(`defaults write com.apple.universalaccess reduceMotion -bool ${bool}`);
+  try {
+    run('killall cfprefsd');
+  } catch (e) {
+    // Non-fatal; prefs usually still apply for newly launched apps.
+  }
+  const actual = getReducedMotion();
+  if (actual !== Boolean(enabled)) {
+    throw new Error(`Failed to set Reduce Motion to ${enabled} (now ${actual})`);
+  }
+  return actual;
+};
+
 module.exports = {
   getTimezone,
   setTimezone,
   getLanguages,
-  setLanguages
+  setLanguages,
+  getReducedMotion,
+  setReducedMotion
 };

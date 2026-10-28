@@ -10,19 +10,60 @@ const settingsRoots = [
   'https://test-pages.privacytests3.org'
 ];
 
-// A/B pairs: same primary language, different second language — and distinct
-// time zones — so we can see whether browsers expose those setting changes.
+// A/B pairs: distinct time zones, second languages, and reduced-motion so we
+// can see whether browsers expose those setting changes.
 const settingsFingerprintConfigs = [
-  { id: 'A', timezone: 'Europe/Paris', languages: ['en', 'fr'] },
-  { id: 'B', timezone: 'Europe/Berlin', languages: ['en', 'de'] }
+  {
+    id: 'A',
+    timezone: 'Europe/Paris',
+    languages: ['en', 'fr'],
+    reducedMotion: true
+  },
+  {
+    id: 'B',
+    timezone: 'Europe/Berlin',
+    languages: ['en', 'de'],
+    reducedMotion: false
+  }
 ];
 
 const log = (...args) => {
   console.log(new Date().toISOString(), ...args);
 };
 
-const settingLabel = ({ timezone, languages }) =>
-  `${timezone}; languages=${languages.join(',')}`;
+const settingLabel = ({ timezone, languages, reducedMotion }) =>
+  `${timezone}; languages=${languages.join(',')}; reducedMotion=${reducedMotion}`;
+
+// Snapshot of host settings before A/B mutation (also used by test.js cleanup).
+let originalSettings = null;
+
+const saveOriginalSettings = () => {
+  if (os.platform() !== 'darwin') {
+    return;
+  }
+  originalSettings = {
+    timezone: systemSettings.getTimezone(),
+    languages: systemSettings.getLanguages(),
+    reducedMotion: systemSettings.getReducedMotion()
+  };
+  log('settings fingerprinting: saved', originalSettings);
+};
+
+const restoreOriginalSettings = () => {
+  if (!originalSettings) {
+    return;
+  }
+  try {
+    log('settings fingerprinting: restoring', originalSettings);
+    systemSettings.setTimezone(originalSettings.timezone);
+    if (originalSettings.languages.length > 0) {
+      systemSettings.setLanguages(originalSettings.languages);
+    }
+    systemSettings.setReducedMotion(originalSettings.reducedMotion);
+  } catch (e) {
+    log('settings fingerprinting: failed to restore settings', e);
+  }
+};
 
 // Merge per-domain probe results. Differing values across first parties → farbled.
 const mergeDomainResults = (perDomain) => {
@@ -78,38 +119,41 @@ const mergeSettingsFingerprintResults = (perSetting) => {
   return merged;
 };
 
-// Firefox prefers intl.accept_languages over AppleLanguages for navigator.languages.
-const applyFirefoxAcceptLanguages = async (browserSession, languages) => {
+// Firefox-specific prefs that mirror OS language / reduced-motion settings.
+const applyFirefoxSettingsPrefs = async (browserSession, { languages, reducedMotion }) => {
   if (browserSession.browser._defaults?.basedOn !== 'firefox') {
     return;
   }
   await browserSession.browser.kill();
   await browserSession.browser.setPref('intl.accept_languages', languages.join(','));
+  // 1 = reduce, 0 = no preference.
+  await browserSession.browser.setPref('ui.prefersReducedMotion', reducedMotion ? 1 : 0);
   await browserSession.browser.launch(false);
 };
 
 // Apply each OS settings config, launch a fresh browser, run the three-domain
-// settings fingerprint page, then restore prior timezone/languages.
+// settings fingerprint page, then restore prior OS settings.
 // `runPageTest` is injected from test.js (websocket/session helper).
 const runSettingsFingerprintTests = async (browserSession, { runPageTest }) => {
   if (os.platform() !== 'darwin') {
     log('settings fingerprinting: skipping (macOS only)');
     return {};
   }
-  const originalTimezone = systemSettings.getTimezone();
-  const originalLanguages = systemSettings.getLanguages();
-  log('settings fingerprinting: saved', { originalTimezone, originalLanguages });
+  if (!originalSettings) {
+    saveOriginalSettings();
+  }
   try {
     const perSetting = [];
     for (const config of settingsFingerprintConfigs) {
       log('settings fingerprinting: applying', config);
       systemSettings.setTimezone(config.timezone);
       systemSettings.setLanguages(config.languages);
+      systemSettings.setReducedMotion(config.reducedMotion);
       // Give the OS / browsers a moment to notice the new settings.
       await sleepMs(2000);
       await browserSession.browser.launch(true);
       try {
-        await applyFirefoxAcceptLanguages(browserSession, config.languages);
+        await applyFirefoxSettingsPrefs(browserSession, config);
         const perDomain = [];
         for (const root of settingsRoots) {
           const url = `${root}/settingsFingerprinting.html`;
@@ -129,16 +173,12 @@ const runSettingsFingerprintTests = async (browserSession, { runPageTest }) => {
     }
     return { settings_fingerprinting: mergeSettingsFingerprintResults(perSetting) };
   } finally {
-    try {
-      log('settings fingerprinting: restoring', { originalTimezone, originalLanguages });
-      systemSettings.setTimezone(originalTimezone);
-      if (originalLanguages.length > 0) {
-        systemSettings.setLanguages(originalLanguages);
-      }
-    } catch (e) {
-      log('settings fingerprinting: failed to restore settings', e);
-    }
+    restoreOriginalSettings();
   }
 };
 
-module.exports = { runSettingsFingerprintTests };
+module.exports = {
+  runSettingsFingerprintTests,
+  saveOriginalSettings,
+  restoreOriginalSettings
+};

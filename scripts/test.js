@@ -25,8 +25,11 @@ const { sleepMs, parseBrowserKey } = require('./utils');
 const path = require('node:path');
 const { observeDomains, runDnsTests } = require('./dns-test.js');
 const systemNetworkSettings = require('./system-network-settings');
-const systemSettings = require('./system-settings');
-const { runSettingsFingerprintTests } = require('./settings-fingerprint-test');
+const {
+  runSettingsFingerprintTests,
+  saveOriginalSettings,
+  restoreOriginalSettings
+} = require('./settings-fingerprint-test');
 const { macOSdefaultBrowserSettings } = require('./desktop-constants');
 const { validateExtensionId } = require('./chrome-extension');
 
@@ -826,8 +829,6 @@ const allDesktopBrowserSpecs = (config) =>
 
 let cleanupRan = false;
 let originalDnsIps;
-let originalTimezone;
-let originalLanguages;
 const cleanupAndShutdown = async (exitCode) => {
   if (!cleanupRan) {
     try {
@@ -843,20 +844,7 @@ const cleanupAndShutdown = async (exitCode) => {
         const preferredNetworkService = systemNetworkSettings.getPreferredNetworkService();
         systemNetworkSettings.setDNS(preferredNetworkService, originalDnsIps);
       }
-      if (originalTimezone !== undefined) {
-        try {
-          systemSettings.setTimezone(originalTimezone);
-        } catch (e) {
-          log('cleanup: failed to restore timezone', e);
-        }
-      }
-      if (originalLanguages !== undefined && originalLanguages.length > 0) {
-        try {
-          systemSettings.setLanguages(originalLanguages);
-        } catch (e) {
-          log('cleanup: failed to restore languages', e);
-        }
-      }
+      restoreOriginalSettings();
       cleanupRan = true;
     } catch (e) {
       log(e);
@@ -914,10 +902,7 @@ const main = async () => {
       await DesktopBrowser.setGlobalProxyUsageEnabled(false);
       const preferredNetworkService = systemNetworkSettings.getPreferredNetworkService();
       originalDnsIps = systemNetworkSettings.getDNS(preferredNetworkService);
-      if (os.platform() === 'darwin') {
-        originalTimezone = systemSettings.getTimezone();
-        originalLanguages = systemSettings.getLanguages();
-      }
+      saveOriginalSettings();
       const activeVpnCount = await DesktopBrowser.countActiveVpns();
       if (activeVpnCount > 0) {
         console.log(`VPNs detected: ${activeVpnCount}. Please disable all VPNs.`);

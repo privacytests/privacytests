@@ -12,6 +12,13 @@ const settingsFingerprintTests = [
     name: 'navigator.languages',
     description: 'navigator.languages as JSON. Under settings A/B the OS preferred list is en,fr vs en,de. A stable value (e.g. only English) means the browser is censoring additional languages; a changing list means the second language is exposed.',
     probe: () => JSON.stringify(Array.from(navigator.languages || []))
+  },
+  {
+    name: 'prefers-reduced-motion',
+    description: 'matchMedia("(prefers-reduced-motion: reduce)") → "reduce" or "no-preference". Under settings A/B the OS Reduce Motion toggle is on vs off. Stable value means the preference is not exposed (or is spoofed); changing means it leaks.',
+    probe: () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ? 'reduce'
+      : 'no-preference'
   }
 ];
 
