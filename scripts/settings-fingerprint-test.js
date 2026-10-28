@@ -17,6 +17,8 @@ const settingsFingerprintConfigs = [
     id: 'A',
     timezone: 'Europe/Paris',
     languages: ['en', 'fr'],
+    // AZERTY vs QWERTZ — distinguishable via Keyboard Map API.
+    keyboardLayout: 'French',
     reducedMotion: true,
     reducedTransparency: true,
     increaseContrast: true
@@ -25,6 +27,7 @@ const settingsFingerprintConfigs = [
     id: 'B',
     timezone: 'Europe/Berlin',
     languages: ['en', 'de'],
+    keyboardLayout: 'German',
     reducedMotion: false,
     reducedTransparency: false,
     increaseContrast: false
@@ -36,9 +39,10 @@ const log = (...args) => {
 };
 
 const settingLabel = ({
-  timezone, languages, reducedMotion, reducedTransparency, increaseContrast
+  timezone, languages, keyboardLayout,
+  reducedMotion, reducedTransparency, increaseContrast
 }) =>
-  `${timezone}; languages=${languages.join(',')}; ` +
+  `${timezone}; languages=${languages.join(',')}; keyboardLayout=${keyboardLayout}; ` +
   `reducedMotion=${reducedMotion}; reducedTransparency=${reducedTransparency}; ` +
   `increaseContrast=${increaseContrast}`;
 
@@ -52,6 +56,7 @@ const saveOriginalSettings = () => {
   originalSettings = {
     timezone: systemSettings.getTimezone(),
     languages: systemSettings.getLanguages(),
+    keyboardLayout: systemSettings.getKeyboardLayout(),
     reducedMotion: systemSettings.getReducedMotion(),
     reducedTransparency: systemSettings.getReducedTransparency(),
     increaseContrast: systemSettings.getIncreaseContrast()
@@ -68,6 +73,9 @@ const restoreOriginalSettings = () => {
     systemSettings.setTimezone(originalSettings.timezone);
     if (originalSettings.languages.length > 0) {
       systemSettings.setLanguages(originalSettings.languages);
+    }
+    if (originalSettings.keyboardLayout) {
+      systemSettings.setKeyboardLayout(originalSettings.keyboardLayout);
     }
     systemSettings.setReducedMotion(originalSettings.reducedMotion);
     systemSettings.setReducedTransparency(originalSettings.reducedTransparency);
@@ -160,6 +168,7 @@ const runSettingsFingerprintTests = async (browserSession, { runPageTest }) => {
       log('settings fingerprinting: applying', config);
       systemSettings.setTimezone(config.timezone);
       systemSettings.setLanguages(config.languages);
+      systemSettings.setKeyboardLayout(config.keyboardLayout);
       systemSettings.setReducedMotion(config.reducedMotion);
       systemSettings.setReducedTransparency(config.reducedTransparency);
       systemSettings.setIncreaseContrast(config.increaseContrast);

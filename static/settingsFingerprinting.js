@@ -33,6 +33,26 @@ const settingsFingerprintTests = [
     probe: () => window.matchMedia('(prefers-contrast: more)').matches
       ? 'more'
       : 'no-preference'
+  },
+  {
+    name: 'keyboardLayoutMap',
+    description: 'Subset of navigator.keyboard.getLayoutMap() for keys that differ across French (AZERTY) vs German (QWERTZ). Chromium-oriented; `"undefined"` when the Keyboard Map API is missing. Stable across layouts means the OS keyboard layout is not exposed.',
+    probe: async () => {
+      if (!navigator.keyboard?.getLayoutMap) {
+        return String(undefined);
+      }
+      const map = await navigator.keyboard.getLayoutMap();
+      // Sample codes that diverge between QWERTY / AZERTY / QWERTZ.
+      const codes = [
+        'KeyQ', 'KeyW', 'KeyE', 'KeyR', 'KeyT', 'KeyY', 'KeyZ',
+        'KeyA', 'KeyM', 'Semicolon', 'BracketLeft', 'Slash'
+      ];
+      const sample = {};
+      for (const code of codes) {
+        sample[code] = map.get(code);
+      }
+      return JSON.stringify(sample);
+    }
   }
 ];
 

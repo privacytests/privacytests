@@ -1,7 +1,13 @@
 // macOS system setting helpers for settings-fingerprinting A/B runs.
 const { execSync } = require('child_process');
+const path = require('path');
 
 const run = (command) => execSync(command, { encoding: 'utf8' }).toString();
+
+const keyboardLayoutScript = path.join(__dirname, 'setkeyboardlayout.swift');
+
+const runKeyboardLayoutTool = (argument) =>
+  run(`swift ${JSON.stringify(keyboardLayoutScript)} ${JSON.stringify(argument)}`).trim();
 
 const getTimezone = () => {
   // "Time Zone: Europe/Paris" or similar.
@@ -143,6 +149,19 @@ const setIncreaseContrast = (enabled) => setAccessibilityBool({
   readKey: 'increaseContrast'
 });
 
+// Keyboard input source via Text Input Sources (setkeyboardlayout.swift).
+// Pass a short name (French) or full ID (com.apple.keylayout.French).
+const getKeyboardLayout = () => runKeyboardLayoutTool('current');
+
+const setKeyboardLayout = (layout) => {
+  const actual = runKeyboardLayoutTool(layout);
+  const wanted = layout.includes('.') ? layout : `com.apple.keylayout.${layout}`;
+  if (actual !== wanted) {
+    throw new Error(`Failed to set keyboard layout to ${wanted} (now ${actual})`);
+  }
+  return actual;
+};
+
 module.exports = {
   getTimezone,
   setTimezone,
@@ -153,5 +172,7 @@ module.exports = {
   getReducedTransparency,
   setReducedTransparency,
   getIncreaseContrast,
-  setIncreaseContrast
+  setIncreaseContrast,
+  getKeyboardLayout,
+  setKeyboardLayout
 };
