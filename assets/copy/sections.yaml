@@ -44,13 +44,26 @@
   tagline: Which browsers hide what's unique about your device?
   description: >
     Fingerprinting is a technique trackers use to uniquely identify you as you browse the web.
-    A fingerprinting script will measure several characteristics of your browser and, combining
+    A fingerprinting script will measure several characteristics of your system and, combining
     this data, will build a fingerprint that may uniquely identify you among web users.
     Browsers can introduce countermeasures, such as minimizing the distinguishing information
     disclosed by certain web APIs so your browser is harder to pick out from the crowd
     (so-called 'fingerprinting resistance'). Some browsers may also randomize values
     to make it hard to track you across websites.`,
   tooltipType: fingerprinting
+
+- category: settings_fingerprinting
+  name: Settings fingerprinting resistance tests
+  tagline: Which browsers hide changes to your system settings?
+  description: >
+    Some browser fingerprinting signals come from operating-system settings.
+    A fingerprinting script will measure several characteristics of your system settings
+    and, combining this data, will build a fingerprint that may uniquely identify you among web users.
+    Browsers can introduce countermeasures, such as minimizing the distinguishing information
+    disclosed by certain web APIs so your browser is harder to pick out from the crowd
+    (so-called 'fingerprinting resistance'). Some browsers may also randomize values
+    to make it hard to track you across websites.`,
+  tooltipType: settings_fingerprinting
 
 - category: query
   name: Tracking query parameter tests

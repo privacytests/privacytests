@@ -25,6 +25,8 @@ const { sleepMs, parseBrowserKey } = require('./utils');
 const path = require('node:path');
 const { observeDomains, runDnsTests } = require('./dns-test.js');
 const systemNetworkSettings = require('./system-network-settings');
+const systemSettings = require('./system-settings');
+const { runSettingsFingerprintTests } = require('./settings-fingerprint-test');
 const { macOSdefaultBrowserSettings } = require('./desktop-constants');
 const { validateExtensionId } = require('./chrome-extension');
 
@@ -632,6 +634,7 @@ const runTests = async (
     let testResultsStage2 = null;
     let testResultsStage3 = null;
     let testResultsFingerprint = null;
+    let testResultsSettingsFingerprint = null;
     if (!android && !ios) {
       await DesktopBrowser.setGlobalProxyUsageEnabled(true, mitmProxyPort);
       try {
@@ -652,6 +655,12 @@ const runTests = async (
           runFingerprintTests(browserSession),
           240000);
       }
+      if (categories.includes('settingsFingerprint')) {
+        testResultsSettingsFingerprint = await deadlinePromise(
+          `${browserSpec.browser} settingsFingerprint`,
+          runSettingsFingerprintTests(browserSession, { runPageTest }),
+          300000);
+      }
     }
 
     const testResults = Object.assign({}, testResultsStage1, testResultsStage2, testResultsStage3);
@@ -660,6 +669,10 @@ const runTests = async (
         ...testResults.fingerprinting,
         ...testResultsFingerprint.fingerprinting
       };
+    }
+    if (testResultsSettingsFingerprint?.settings_fingerprinting) {
+      testResults.settings_fingerprinting =
+        testResultsSettingsFingerprint.settings_fingerprinting;
     }
     const { browser, incognito, tor, nightly, extension } = browserSpec;
     const allTests = [{
@@ -782,9 +795,9 @@ const readConfig = (commandLineData) => {
       'session', 'main', 'supplementary', 'misc', 'https', 'trackingCookies'
     ];
     // DNS leak tests need monitor-dns.js on the Mac; not used for mobile yet.
-    // Fingerprint probes use a fresh desktop browser instance.
+    // Fingerprint / settings-fingerprint probes use a fresh desktop browser instance.
     if (!config.android && !config.ios) {
-      config.categories.push('dns', 'fingerprint');
+      config.categories.push('dns', 'fingerprint', 'settingsFingerprint');
     }
   }
   if (config.skip) {
@@ -813,6 +826,7 @@ const allDesktopBrowserSpecs = (config) =>
 
 let cleanupRan = false;
 let originalDnsIps;
+let originalTimezone;
 const cleanupAndShutdown = async (exitCode) => {
   if (!cleanupRan) {
     try {
@@ -827,6 +841,13 @@ const cleanupAndShutdown = async (exitCode) => {
         await DesktopBrowser.setGlobalProxyUsageEnabled(false);
         const preferredNetworkService = systemNetworkSettings.getPreferredNetworkService();
         systemNetworkSettings.setDNS(preferredNetworkService, originalDnsIps);
+      }
+      if (originalTimezone !== undefined) {
+        try {
+          systemSettings.setTimezone(originalTimezone);
+        } catch (e) {
+          log('cleanup: failed to restore timezone', e);
+        }
       }
       cleanupRan = true;
     } catch (e) {
@@ -885,6 +906,9 @@ const main = async () => {
       await DesktopBrowser.setGlobalProxyUsageEnabled(false);
       const preferredNetworkService = systemNetworkSettings.getPreferredNetworkService();
       originalDnsIps = systemNetworkSettings.getDNS(preferredNetworkService);
+      if (os.platform() === 'darwin') {
+        originalTimezone = systemSettings.getTimezone();
+      }
       const activeVpnCount = await DesktopBrowser.countActiveVpns();
       if (activeVpnCount > 0) {
         console.log(`VPNs detected: ${activeVpnCount}. Please disable all VPNs.`);

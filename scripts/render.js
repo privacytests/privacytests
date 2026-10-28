@@ -224,6 +224,10 @@ const tooltipFunctions = {};
 tooltipFunctions.fingerprinting = fingerprintingItem =>
   tooltipFunctions.simple(fingerprintingItem);
 
+// Settings fingerprinting: values collected under OS settings A vs B.
+tooltipFunctions.settings_fingerprinting = settingsItem =>
+  tooltipFunctions.simple(settingsItem);
+
 const joinIfArray = x => {
   const isArray = Array.isArray(x);
   const joined = isArray ? x.join(', ') : x;
@@ -454,7 +458,7 @@ const resultsKeys = [
   'passed', 'testFailed',
   'readSameFirstParty', 'readDifferentFirstParty',
   'readSameSession', 'readDifferentSession',
-  'actual_value', 'desired_value', 'value', 'randomized',
+  'actual_value', 'desired_value', 'value', 'randomized', 'settings',
   'IsTorExit', 'cloudflareDoH', 'nextDoH', 'result',
   'unsupported', 'upgraded', 'cookieFound', 'leak detected'
 ];
@@ -495,7 +499,8 @@ const aggregateRepeatedTrials = (results) => {
       if (aggregatedResults.has(key)) {
         const testResultsForRound = aggregatedResults.get(key).testResults;
         if (testResultsForRound) {
-          for (const subcategory of ['supercookies', 'session_1p', 'session_3p', 'fingerprinting', 'https', 'misc', 'navigation',
+          for (const subcategory of ['supercookies', 'session_1p', 'session_3p', 'fingerprinting',
+            'settings_fingerprinting', 'https', 'misc', 'navigation',
             'query', 'trackers', 'tracker_cookies', 'dns']) {
             const someTests = testResultsForRound[subcategory];
             for (const testName in test.testResults[subcategory]) {
