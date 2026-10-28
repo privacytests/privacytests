@@ -65,6 +65,26 @@ const settingsFingerprintTests = [
     probe: () => String(screen.height)
   },
   {
+    name: 'screen.availWidth',
+    description: 'screen.availWidth in CSS pixels. Under settings A/B the Dock is at bottom vs left (autohide off). Left Dock should shrink availWidth; stable values mean OS chrome insets are not exposed.',
+    probe: () => String(screen.availWidth)
+  },
+  {
+    name: 'screen.availHeight',
+    description: 'screen.availHeight in CSS pixels. Bottom Dock should shrink availHeight vs left Dock. Paired with screen.availWidth under Dock position A/B.',
+    probe: () => String(screen.availHeight)
+  },
+  {
+    name: 'screen.availLeft',
+    description: 'screen.availLeft in CSS pixels. Typically 0 with a bottom Dock and > 0 with a left Dock. Stable 0 across A/B can mean the inset is spoofed or unavailable.',
+    probe: () => String(screen.availLeft)
+  },
+  {
+    name: 'screen.availTop',
+    description: 'screen.availTop in CSS pixels. Under settings A/B the menu bar is shown vs autohide (_HIHideMenuBar). Shown should yield availTop > 0; autohide typically yields 0. Stable values mean the top OS inset is not exposed.',
+    probe: () => String(screen.availTop)
+  },
+  {
     name: 'systemFont',
     description: 'Whether a custom installed font (Monoton) appears to be applied via DOM layout. Under settings A/B the font is installed vs removed. Same metrics across both means the browser is not leaking custom font presence; differing means it is detectable.',
     probe: () => {

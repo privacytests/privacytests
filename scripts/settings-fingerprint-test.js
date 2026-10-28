@@ -24,6 +24,10 @@ const settingsFingerprintConfigs = [
     screenSize: screenSizeA,
     // Absent first, then install — avoids stale font-cache after deletion.
     testFontInstalled: false,
+    // Dock bottom vs left (autohide forced off) for screen.avail* probes.
+    dockOrientation: 'bottom',
+    // Menu bar shown vs autohide (_HIHideMenuBar) for screen.availTop.
+    hideMenuBar: false,
     reducedMotion: true,
     reducedTransparency: true,
     increaseContrast: true
@@ -36,6 +40,8 @@ const settingsFingerprintConfigs = [
     // Filled in at run time: next enumerated mode smaller than A in both dims.
     screenSize: null,
     testFontInstalled: true,
+    dockOrientation: 'left',
+    hideMenuBar: true,
     reducedMotion: false,
     reducedTransparency: false,
     increaseContrast: false
@@ -48,11 +54,12 @@ const log = (...args) => {
 
 const settingLabel = ({
   timezone, languages, keyboardLayout, screenSize, testFontInstalled,
-  reducedMotion, reducedTransparency, increaseContrast
+  dockOrientation, hideMenuBar, reducedMotion, reducedTransparency, increaseContrast
 }) =>
   `${timezone}; languages=${languages.join(',')}; keyboardLayout=${keyboardLayout}; ` +
   (screenSize ? `screen=${screenSize.width}x${screenSize.height}; ` : '') +
-  `testFontInstalled=${testFontInstalled}; ` +
+  `testFontInstalled=${testFontInstalled}; dock=${dockOrientation}; ` +
+  `hideMenuBar=${hideMenuBar}; ` +
   `reducedMotion=${reducedMotion}; reducedTransparency=${reducedTransparency}; ` +
   `increaseContrast=${increaseContrast}`;
 
@@ -68,6 +75,10 @@ const relevantSettingForProbe = {
     (screenSize ? `${screenSize.width}x${screenSize.height}` : null),
   'screen.height': ({ screenSize }) =>
     (screenSize ? `${screenSize.width}x${screenSize.height}` : null),
+  'screen.availWidth': ({ dockOrientation }) => dockOrientation,
+  'screen.availHeight': ({ dockOrientation }) => dockOrientation,
+  'screen.availLeft': ({ dockOrientation }) => dockOrientation,
+  'screen.availTop': ({ hideMenuBar }) => String(hideMenuBar),
   systemFont: ({ testFontInstalled }) => String(testFontInstalled),
   canvasTextFont: ({ testFontInstalled }) => String(testFontInstalled)
 };
@@ -109,6 +120,9 @@ const saveOriginalSettings = () => {
     keyboardLayout: systemSettings.getKeyboardLayout(),
     screenSize: systemSettings.getScreenSize(),
     testFontInstalled: systemSettings.getTestFontInstalled(),
+    dockOrientation: systemSettings.getDockOrientation(),
+    dockAutohide: systemSettings.getDockAutohide(),
+    hideMenuBar: systemSettings.getHideMenuBar(),
     reducedMotion: systemSettings.getReducedMotion(),
     reducedTransparency: systemSettings.getReducedTransparency(),
     increaseContrast: systemSettings.getIncreaseContrast()
@@ -133,6 +147,9 @@ const restoreOriginalSettings = () => {
       systemSettings.setScreenSize(originalSettings.screenSize);
     }
     systemSettings.setTestFontInstalled(originalSettings.testFontInstalled);
+    systemSettings.setDockOrientation(originalSettings.dockOrientation);
+    systemSettings.setDockAutohide(originalSettings.dockAutohide);
+    systemSettings.setHideMenuBar(originalSettings.hideMenuBar);
     systemSettings.setReducedMotion(originalSettings.reducedMotion);
     systemSettings.setReducedTransparency(originalSettings.reducedTransparency);
     systemSettings.setIncreaseContrast(originalSettings.increaseContrast);
@@ -226,6 +243,8 @@ const runSettingsFingerprintTests = async (browserSession, { runPageTest }) => {
         systemSettings.setScreenSize(applied.screenSize);
       }
       systemSettings.setTestFontInstalled(applied.testFontInstalled);
+      systemSettings.setDockOrientation(applied.dockOrientation);
+      systemSettings.setHideMenuBar(applied.hideMenuBar);
       systemSettings.setReducedMotion(applied.reducedMotion);
       systemSettings.setReducedTransparency(applied.reducedTransparency);
       systemSettings.setIncreaseContrast(applied.increaseContrast);

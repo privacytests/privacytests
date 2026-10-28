@@ -264,6 +264,72 @@ const testFontDestination = () => {
   return path.join(dir, 'Monoton-Regular.ttf');
 };
 
+// Dock edge (left | bottom | right). Missing key ⇒ bottom (macOS default).
+const getDockOrientation = () => {
+  try {
+    return run('defaults read com.apple.dock orientation').trim();
+  } catch (e) {
+    return 'bottom';
+  }
+};
+
+const getDockAutohide = () => readBoolDefault('com.apple.dock', 'autohide');
+
+const restartDock = () => {
+  try {
+    run('killall Dock');
+  } catch (e) {
+    // Dock relaunches itself; ignore if it was not running.
+  }
+};
+
+// Sets Dock position and forces autohide off so avail* reflects the chrome.
+const setDockOrientation = (orientation) => {
+  if (!['left', 'bottom', 'right'].includes(orientation)) {
+    throw new Error(`Invalid Dock orientation: ${orientation}`);
+  }
+  run(`defaults write com.apple.dock orientation -string ${JSON.stringify(orientation)}`);
+  run('defaults write com.apple.dock autohide -bool false');
+  restartDock();
+  const actual = getDockOrientation();
+  if (actual !== orientation) {
+    throw new Error(`Failed to set Dock orientation to ${orientation} (now ${actual})`);
+  }
+  if (getDockAutohide()) {
+    throw new Error(`Failed to disable Dock autohide (still on after orientation=${orientation})`);
+  }
+  return actual;
+};
+
+const setDockAutohide = (enabled) => {
+  run(`defaults write com.apple.dock autohide -bool ${enabled ? 'true' : 'false'}`);
+  restartDock();
+  const actual = getDockAutohide();
+  if (actual !== Boolean(enabled)) {
+    throw new Error(`Failed to set Dock autohide to ${enabled} (now ${actual})`);
+  }
+  return actual;
+};
+
+// Desktop menu-bar autohide (_HIHideMenuBar). Missing key ⇒ shown (false).
+// Fullscreen visibility (AppleMenuBarVisibleInFullscreen) is left alone.
+const getHideMenuBar = () => readBoolDefault('-g', '_HIHideMenuBar');
+
+const setHideMenuBar = (hidden) => {
+  run(`defaults write -g _HIHideMenuBar -bool ${hidden ? 'true' : 'false'}`);
+  // SystemUIServer owns the menu bar; relaunch so the inset updates.
+  try {
+    run('killall SystemUIServer');
+  } catch (e) {
+    // Relaunches itself; ignore if it was not running.
+  }
+  const actual = getHideMenuBar();
+  if (actual !== Boolean(hidden)) {
+    throw new Error(`Failed to set _HIHideMenuBar to ${hidden} (now ${actual})`);
+  }
+  return actual;
+};
+
 const getTestFontInstalled = () => fs.existsSync(testFontDestination());
 
 const setTestFontInstalled = (installed) => {
@@ -307,5 +373,11 @@ module.exports = {
   listScreenSizes,
   setScreenSize,
   getTestFontInstalled,
-  setTestFontInstalled
+  setTestFontInstalled,
+  getDockOrientation,
+  setDockOrientation,
+  getDockAutohide,
+  setDockAutohide,
+  getHideMenuBar,
+  setHideMenuBar
 };
