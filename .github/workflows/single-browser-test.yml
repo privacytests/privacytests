@@ -40,6 +40,22 @@ on:
           - latest
           - all
         default: latest
+      categories:
+        description: Test categories to run (all = default set for the platform)
+        required: true
+        type: choice
+        options:
+          - all
+          - session
+          - main
+          - supplementary
+          - misc
+          - https
+          - trackingCookies
+          - dns
+          - fingerprint
+          - settingsFingerprint
+        default: all
 
 env:
   CI: true
@@ -126,6 +142,10 @@ jobs:
             RESULT_FILE="${RESULT_BROWSER}-${RESULT_REP}"
           fi
           echo "RESULT_FILE=${RESULT_FILE}" >> "$GITHUB_ENV"
+          CATEGORIES_ARGS=()
+          if [ '${{ inputs.categories }}' != 'all' ]; then
+            CATEGORIES_ARGS=(--categories=${{ inputs.categories }})
+          fi
           if [ '${{ inputs.platform }}' = 'desktop' ]; then
             node test \
               --browser=${{ inputs.browser }} \
@@ -133,13 +153,15 @@ jobs:
               --incognito=${{ inputs.incognito }} \
               --tor=${{ inputs.tor }} \
               --runner=${{ matrix.config.runner }} \
-              --out=../${RESULT_FILE}.json
+              --out=../${RESULT_FILE}.json \
+              "${CATEGORIES_ARGS[@]}"
           else
             node test \
               --${{ inputs.platform }} \
               --browser=${{ inputs.browser }} \
               --nightly=${{ inputs.nightly }} \
-              --out=../${RESULT_FILE}.json
+              --out=../${RESULT_FILE}.json \
+              "${CATEGORIES_ARGS[@]}"
           fi
         timeout-minutes: 20
 
