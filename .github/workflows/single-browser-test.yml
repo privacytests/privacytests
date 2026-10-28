@@ -13,9 +13,34 @@ on:
           - ios
         default: desktop
       browser:
-        description: Browser slug (e.g. chrome, brave, vivaldi)
+        description: Browser to test (nightly/canary via the Nightly input)
         required: true
-        type: string
+        type: choice
+        options:
+          - baidu
+          - brave
+          - bromite
+          - chrome
+          - coccoc
+          - cromite
+          - duckduckgo
+          - edge
+          - firefox
+          - focus
+          - librewolf
+          - mi
+          - mull
+          - mullvad
+          - onion
+          - opera
+          - safari
+          - samsung
+          - tor
+          - uc
+          - ungoogled
+          - vivaldi
+          - whale
+          - yandex
         default: chrome
       nightly:
         description: Use nightly / canary / alpha build

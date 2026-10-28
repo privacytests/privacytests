@@ -54,7 +54,7 @@
 
 - category: settings_fingerprinting
   name: Settings fingerprinting resistance tests
-  tagline: Which browsers hide changes to your system settings?
+  tagline: Which browsers hide what's unique about your system settings?
   description: >
     Some browser fingerprinting signals come from operating-system settings.
     A fingerprinting script will measure several characteristics of your system settings
