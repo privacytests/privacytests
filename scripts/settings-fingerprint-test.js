@@ -191,18 +191,6 @@ const mergeSettingsFingerprintResults = (perSetting) => {
   return merged;
 };
 
-// Firefox-specific prefs that mirror OS language / reduced-motion settings.
-const applyFirefoxSettingsPrefs = async (browserSession, { languages, reducedMotion }) => {
-  if (browserSession.browser._defaults?.basedOn !== 'firefox') {
-    return;
-  }
-  await browserSession.browser.kill();
-  await browserSession.browser.setPref('intl.accept_languages', languages.join(','));
-  // 1 = reduce, 0 = no preference.
-  await browserSession.browser.setPref('ui.prefersReducedMotion', reducedMotion ? 1 : 0);
-  await browserSession.browser.launch(false);
-};
-
 // Apply each OS settings config, launch a fresh browser, run the three-domain
 // settings fingerprint page, then restore prior OS settings.
 // `runPageTest` is injected from test.js (websocket/session helper).
@@ -236,7 +224,6 @@ const runSettingsFingerprintTests = async (browserSession, { runPageTest }) => {
       await sleepMs(2000);
       await browserSession.browser.launch(true);
       try {
-        await applyFirefoxSettingsPrefs(browserSession, applied);
         const perDomain = [];
         for (const root of settingsRoots) {
           const url = `${root}/settingsFingerprinting.html`;
