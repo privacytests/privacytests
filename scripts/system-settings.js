@@ -94,13 +94,14 @@ const flushPrefs = () => {
   }
 };
 
-// Write a paired Accessibility + universalaccess bool and verify via Accessibility.
+// Write a paired Accessibility + universalaccess bool; verify via universalaccess
+// (Accessibility keys are flaky on some CI images after cfprefsd flush).
 const setAccessibilityBool = ({
   name,
   accessibilityKey,
   universalAccessKey,
   enabled,
-  readDomain = 'com.apple.Accessibility',
+  readDomain = 'com.apple.universalaccess',
   readKey
 }) => {
   const flag = enabled ? '1' : '0';
@@ -108,7 +109,7 @@ const setAccessibilityBool = ({
   run(`defaults write com.apple.Accessibility ${accessibilityKey} -int ${flag}`);
   run(`defaults write com.apple.universalaccess ${universalAccessKey} -bool ${bool}`);
   flushPrefs();
-  const actual = readBoolDefault(readDomain, readKey || accessibilityKey);
+  const actual = readBoolDefault(readDomain, readKey || universalAccessKey);
   if (actual !== Boolean(enabled)) {
     throw new Error(`Failed to set ${name} to ${enabled} (now ${actual})`);
   }
@@ -117,13 +118,16 @@ const setAccessibilityBool = ({
 
 // Accessibility → Reduce Motion. Browsers: prefers-reduced-motion.
 const getReducedMotion = () =>
-  readBoolDefault('com.apple.Accessibility', 'ReduceMotionEnabled');
+  readBoolDefault('com.apple.Accessibility', 'ReduceMotionEnabled') ||
+  readBoolDefault('com.apple.universalaccess', 'reduceMotion');
 
 const setReducedMotion = (enabled) => setAccessibilityBool({
   name: 'Reduce Motion',
   accessibilityKey: 'ReduceMotionEnabled',
   universalAccessKey: 'reduceMotion',
-  enabled
+  enabled,
+  readDomain: 'com.apple.universalaccess',
+  readKey: 'reduceMotion'
 });
 
 // Accessibility → Reduce Transparency. Browsers: prefers-reduced-transparency.
