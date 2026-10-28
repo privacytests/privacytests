@@ -56,12 +56,12 @@ const settingsFingerprintTests = [
   },
   {
     name: 'screen.width',
-    description: 'screen.width in CSS pixels. Under settings A/B the display is set to 1920x1080 vs the next available mode smaller in both dimensions. Stable (e.g. rounded) values mean the exact OS resolution is not exposed.',
+    description: 'screen.width in CSS pixels. Under settings A/B the display is set to 1920x1080 vs 1919x1079. Stable (e.g. rounded) values mean the exact OS resolution is not exposed.',
     probe: () => String(screen.width)
   },
   {
     name: 'screen.height',
-    description: 'screen.height in CSS pixels. Paired with screen.width under 1920x1080 vs next-smaller available mode A/B settings.',
+    description: 'screen.height in CSS pixels. Paired with screen.width under 1920x1080 vs 1919x1079 A/B settings.',
     probe: () => String(screen.height)
   }
 ];
