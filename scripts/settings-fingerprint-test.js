@@ -10,6 +10,8 @@ const settingsRoots = [
   'https://test-pages.privacytests3.org'
 ];
 
+const screenSizeA = { width: 1920, height: 1080 };
+
 // A/B pairs: distinct time zones, second languages, and a11y display toggles
 // so we can see whether browsers expose those setting changes.
 const settingsFingerprintConfigs = [
@@ -19,7 +21,7 @@ const settingsFingerprintConfigs = [
     languages: ['en', 'fr'],
     // AZERTY vs QWERTZ — distinguishable via Keyboard Map API.
     keyboardLayout: 'French',
-    screenSize: { width: 1920, height: 1080 },
+    screenSize: screenSizeA,
     reducedMotion: true,
     reducedTransparency: true,
     increaseContrast: true
@@ -29,9 +31,8 @@ const settingsFingerprintConfigs = [
     timezone: 'Europe/Berlin',
     languages: ['en', 'de'],
     keyboardLayout: 'German',
-    // Odd size: often absent from enumerated modes; screen-size tries a custom
-    // mode dictionary fallback for virtual displays.
-    screenSize: { width: 1919, height: 1079 },
+    // Filled in at run time: next enumerated mode smaller than A in both dims.
+    screenSize: null,
     reducedMotion: false,
     reducedTransparency: false,
     increaseContrast: false
@@ -47,12 +48,36 @@ const settingLabel = ({
   reducedMotion, reducedTransparency, increaseContrast
 }) =>
   `${timezone}; languages=${languages.join(',')}; keyboardLayout=${keyboardLayout}; ` +
-  `screen=${screenSize.width}x${screenSize.height}; ` +
+  (screenSize ? `screen=${screenSize.width}x${screenSize.height}; ` : '') +
   `reducedMotion=${reducedMotion}; reducedTransparency=${reducedTransparency}; ` +
   `increaseContrast=${increaseContrast}`;
 
+const screenSizeKey = ({ width, height }) => `${width}x${height}`;
+
+// Resolve B's screen size from available modes; return false if A/B can't both run.
+const prepareScreenSizes = () => {
+  const available = systemSettings.listScreenSizes();
+  const availableKeys = new Set(available.map(screenSizeKey));
+  log('settings fingerprinting: available display sizes', [...availableKeys]);
+  if (available.length < 2 || !availableKeys.has(screenSizeKey(screenSizeA))) {
+    return false;
+  }
+  let screenSizeB;
+  try {
+    screenSizeB = systemSettings.getNextSmallerScreenSize(screenSizeA);
+  } catch (e) {
+    log('settings fingerprinting: no next-smaller mode than', screenSizeKey(screenSizeA), e.message || e);
+    return false;
+  }
+  const configB = settingsFingerprintConfigs.find(({ id }) => id === 'B');
+  configB.screenSize = screenSizeB;
+  log('settings fingerprinting: screen A/B', screenSizeKey(screenSizeA), '→', screenSizeKey(screenSizeB));
+  return true;
+};
+
 // Snapshot of host settings before A/B mutation (also used by test.js cleanup).
 let originalSettings = null;
+let varyScreenSize = false;
 
 const saveOriginalSettings = () => {
   if (os.platform() !== 'darwin') {
@@ -83,7 +108,7 @@ const restoreOriginalSettings = () => {
     if (originalSettings.keyboardLayout) {
       systemSettings.setKeyboardLayout(originalSettings.keyboardLayout);
     }
-    if (originalSettings.screenSize) {
+    if (varyScreenSize && originalSettings.screenSize) {
       systemSettings.setScreenSize(originalSettings.screenSize);
     }
     systemSettings.setReducedMotion(originalSettings.reducedMotion);
@@ -171,40 +196,54 @@ const runSettingsFingerprintTests = async (browserSession, { runPageTest }) => {
   if (!originalSettings) {
     saveOriginalSettings();
   }
+  varyScreenSize = prepareScreenSizes();
+  if (!varyScreenSize) {
+    log('settings fingerprinting: skipping screen size A/B (need 1920x1080 plus a smaller mode)');
+  }
   try {
     const perSetting = [];
     for (const config of settingsFingerprintConfigs) {
-      log('settings fingerprinting: applying', config);
-      systemSettings.setTimezone(config.timezone);
-      systemSettings.setLanguages(config.languages);
-      systemSettings.setKeyboardLayout(config.keyboardLayout);
-      systemSettings.setScreenSize(config.screenSize);
-      systemSettings.setReducedMotion(config.reducedMotion);
-      systemSettings.setReducedTransparency(config.reducedTransparency);
-      systemSettings.setIncreaseContrast(config.increaseContrast);
+      const applied = varyScreenSize ? config : { ...config, screenSize: null };
+      log('settings fingerprinting: applying', applied);
+      systemSettings.setTimezone(applied.timezone);
+      systemSettings.setLanguages(applied.languages);
+      systemSettings.setKeyboardLayout(applied.keyboardLayout);
+      if (varyScreenSize) {
+        systemSettings.setScreenSize(applied.screenSize);
+      }
+      systemSettings.setReducedMotion(applied.reducedMotion);
+      systemSettings.setReducedTransparency(applied.reducedTransparency);
+      systemSettings.setIncreaseContrast(applied.increaseContrast);
       // Give the OS / browsers a moment to notice the new settings.
       await sleepMs(2000);
       await browserSession.browser.launch(true);
       try {
-        await applyFirefoxSettingsPrefs(browserSession, config);
+        await applyFirefoxSettingsPrefs(browserSession, applied);
         const perDomain = [];
         for (const root of settingsRoots) {
           const url = `${root}/settingsFingerprinting.html`;
           log('settings fingerprint domain', {
-            setting: settingLabel(config),
+            setting: settingLabel(applied),
             url
           });
           perDomain.push(await runPageTest(browserSession, url));
         }
         perSetting.push({
-          setting: settingLabel(config),
+          setting: settingLabel(applied),
           results: mergeDomainResults(perDomain)
         });
       } finally {
         await browserSession.browser.kill();
       }
     }
-    return { settings_fingerprinting: mergeSettingsFingerprintResults(perSetting) };
+    const merged = mergeSettingsFingerprintResults(perSetting);
+    // Don't score screen probes when we never varied the display — identical
+    // A/B values would look like a false privacy pass.
+    if (!varyScreenSize) {
+      delete merged['screen.width'];
+      delete merged['screen.height'];
+    }
+    return { settings_fingerprinting: merged };
   } finally {
     restoreOriginalSettings();
   }

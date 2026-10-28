@@ -127,15 +127,35 @@ func setFromCustomDictionary(width: Int, height: Int) -> Bool {
     return true
 }
 
-func logAvailableSizes() {
-    let current = currentSizeString()
+func uniqueModes() -> [(width: Int, height: Int)] {
     var seen = Set<String>()
-    var sizes: [String] = []
+    var result: [(width: Int, height: Int)] = []
     for mode in getAvailableDisplayModes(for: getMainDisplay()) {
         let key = "\(mode.width)x\(mode.height)"
         if seen.insert(key).inserted {
-            sizes.append(key == current ? "\(key) *" : key)
+            result.append((mode.width, mode.height))
         }
+    }
+    return result
+}
+
+// Largest available mode with width < W and height < H.
+func nextSmallerSize(thanWidth width: Int, height: Int) -> (width: Int, height: Int)? {
+    return uniqueModes()
+        .filter { $0.width < width && $0.height < height }
+        .max { a, b in
+            if a.width != b.width {
+                return a.width < b.width
+            }
+            return a.height < b.height
+        }
+}
+
+func logAvailableSizes() {
+    let current = currentSizeString()
+    let sizes = uniqueModes().map { mode in
+        let key = "\(mode.width)x\(mode.height)"
+        return key == current ? "\(key) *" : key
     }
     fputs("Available display sizes: \(sizes.isEmpty ? "(none)" : sizes.joined(separator: ", "))\n", stderr)
 }
@@ -167,6 +187,7 @@ let args = CommandLine.arguments
 let usage = """
 usage: screen-size
        screen-size current
+       screen-size next-smaller <width> <height>
        screen-size <width> <height>
 """
 
@@ -186,6 +207,17 @@ case 3:
         fputs(usage, stderr)
         exit(2)
     }
+case 4 where args[1] == "next-smaller":
+    guard let width = Int(args[2]), let height = Int(args[3]) else {
+        fputs(usage, stderr)
+        exit(2)
+    }
+    guard let next = nextSmallerSize(thanWidth: width, height: height) else {
+        fputs("No display mode smaller than \(width)x\(height) in both dimensions\n", stderr)
+        logAvailableSizes()
+        exit(1)
+    }
+    print("\(next.width)x\(next.height)")
 default:
     fputs(usage, stderr)
     exit(2)

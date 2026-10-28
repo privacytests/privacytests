@@ -185,6 +185,26 @@ const getScreenSize = () => parseScreenSize(runScreenSizeTool('current'));
 const getNextSmallerScreenSize = ({ width, height }) =>
   parseScreenSize(runScreenSizeTool('next-smaller', width, height));
 
+// Unique modes from `screen-size` with no args ("1920 x 1080 *").
+const listScreenSizes = () => {
+  const out = runScreenSizeTool();
+  const sizes = [];
+  const seen = new Set();
+  for (const line of out.split('\n')) {
+    const match = line.match(/(\d+)\s*x\s*(\d+)/i);
+    if (!match) {
+      continue;
+    }
+    const key = `${match[1]}x${match[2]}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    sizes.push({ width: parseInt(match[1], 10), height: parseInt(match[2], 10) });
+  }
+  return sizes;
+};
+
 const setScreenSize = ({ width, height }) => {
   const actual = parseScreenSize(runScreenSizeTool(width, height));
   if (actual.width !== width || actual.height !== height) {
@@ -209,5 +229,6 @@ module.exports = {
   setKeyboardLayout,
   getScreenSize,
   getNextSmallerScreenSize,
+  listScreenSizes,
   setScreenSize
 };
