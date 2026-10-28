@@ -68,7 +68,8 @@ const relevantSettingForProbe = {
     (screenSize ? `${screenSize.width}x${screenSize.height}` : null),
   'screen.height': ({ screenSize }) =>
     (screenSize ? `${screenSize.width}x${screenSize.height}` : null),
-  systemFont: ({ testFontInstalled }) => String(testFontInstalled)
+  systemFont: ({ testFontInstalled }) => String(testFontInstalled),
+  canvasTextFont: ({ testFontInstalled }) => String(testFontInstalled)
 };
 
 const screenSizeKey = ({ width, height }) => `${width}x${height}`;

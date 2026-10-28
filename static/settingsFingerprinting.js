@@ -66,7 +66,7 @@ const settingsFingerprintTests = [
   },
   {
     name: 'systemFont',
-    description: 'Whether a custom installed font (Monoton) appears to be applied. Under settings A/B the font is installed vs removed. Same metrics across both means the browser is not leaking custom font presence; differing means it is detectable.',
+    description: 'Whether a custom installed font (Monoton) appears to be applied via DOM layout. Under settings A/B the font is installed vs removed. Same metrics across both means the browser is not leaking custom font presence; differing means it is detectable.',
     probe: () => {
       // Same text with Monoton first; if Monoton applies, both widths match.
       // If it does not, monospace vs sans-serif fallbacks diverge.
@@ -84,6 +84,41 @@ const settingsFingerprintTests = [
       div2.remove();
       const sameWidth = Math.abs(width2 - width1) <= 0.01;
       return sameWidth ? 'detected' : 'not-detected';
+    }
+  },
+  {
+    name: 'canvasTextFont',
+    description: 'Canvas 2D fillText with Monoton vs monospace/sans-serif fallbacks. Same install/remove A/B as systemFont. Identical bitmaps mean Monoton was applied (detected); divergent bitmaps mean fallbacks (not-detected).',
+    probe: async () => {
+      const text = 'font fingerprinting';
+      const size = '48px';
+      // Best-effort load; missing fonts reject without blocking the probe.
+      if (document.fonts?.load) {
+        await Promise.allSettled([
+          document.fonts.load(`${size} Monoton`),
+          document.fonts.load(`${size} Rosemary`)
+        ]);
+      }
+      const render = (fontFamily) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 400;
+        canvas.height = 80;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          return null;
+        }
+        ctx.textBaseline = 'top';
+        ctx.font = `${size} ${fontFamily}`;
+        ctx.fillStyle = '#000';
+        ctx.fillText(text, 10, 10);
+        return canvas.toDataURL();
+      };
+      const withMono = render('Monoton, Rosemary, monospace');
+      const withSans = render('Monoton, Rosemary, sans-serif');
+      if (!withMono || !withSans) {
+        return String(undefined);
+      }
+      return withMono === withSans ? 'detected' : 'not-detected';
     }
   }
 ];
