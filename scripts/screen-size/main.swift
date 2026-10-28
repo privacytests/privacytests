@@ -127,6 +127,19 @@ func setFromCustomDictionary(width: Int, height: Int) -> Bool {
     return true
 }
 
+func logAvailableSizes() {
+    let current = currentSizeString()
+    var seen = Set<String>()
+    var sizes: [String] = []
+    for mode in getAvailableDisplayModes(for: getMainDisplay()) {
+        let key = "\(mode.width)x\(mode.height)"
+        if seen.insert(key).inserted {
+            sizes.append(key == current ? "\(key) *" : key)
+        }
+    }
+    fputs("Available display sizes: \(sizes.isEmpty ? "(none)" : sizes.joined(separator: ", "))\n", stderr)
+}
+
 func setDisplayMode(width: Int, height: Int) {
     if setFromEnumeratedMode(width: width, height: height) {
         print("\(width)x\(height)")
@@ -142,9 +155,11 @@ func setDisplayMode(width: Int, height: Int) {
         fputs(
           "Custom mode configure returned success but size is \(currentSizeString() ?? "unknown") (wanted \(width)x\(height))\n",
           stderr)
+        logAvailableSizes()
         exit(1)
     }
     fputs("No matching display mode found for \(width)x\(height)\n", stderr)
+    logAvailableSizes()
     exit(1)
 }
 
