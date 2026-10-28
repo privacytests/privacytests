@@ -63,6 +63,28 @@ const settingsFingerprintTests = [
     name: 'screen.height',
     description: 'screen.height in CSS pixels. Paired with screen.width under 1920x1080 vs next-smaller available mode A/B settings.',
     probe: () => String(screen.height)
+  },
+  {
+    name: 'systemFont',
+    description: 'Whether a custom installed font (Monoton) appears to be applied. Under settings A/B the font is installed vs removed. Same metrics across both means the browser is not leaking custom font presence; differing means it is detectable.',
+    probe: () => {
+      // Same text with Monoton first; if Monoton applies, both widths match.
+      // If it does not, monospace vs sans-serif fallbacks diverge.
+      const div1 = document.createElement('div');
+      div1.textContent = 'font fingerprinting';
+      div1.setAttribute('style', 'font-family: Monoton, Rosemary, monospace');
+      const div2 = document.createElement('div');
+      div2.textContent = 'font fingerprinting';
+      div2.setAttribute('style', 'font-family: Monoton, Rosemary, sans-serif');
+      document.body.appendChild(div1);
+      document.body.appendChild(div2);
+      const width1 = div1.getBoundingClientRect().width;
+      const width2 = div2.getBoundingClientRect().width;
+      div1.remove();
+      div2.remove();
+      const sameWidth = Math.abs(width2 - width1) <= 0.01;
+      return sameWidth ? 'detected' : 'not-detected';
+    }
   }
 ];
 

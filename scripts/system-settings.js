@@ -1,5 +1,7 @@
 // macOS system setting helpers for settings-fingerprinting A/B runs.
 const { execSync } = require('child_process');
+const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 const run = (command) => execSync(command, { encoding: 'utf8' }).toString();
@@ -242,6 +244,43 @@ const setScreenSize = ({ width, height }) => {
   return actual;
 };
 
+// Custom test font (Monoton) for settings-fingerprint A/B: installed vs absent.
+const testFontSource = path.join(__dirname, '../assets/fonts/Monoton-Regular.ttf');
+
+const testFontUserDir = () => {
+  const homedir = os.homedir();
+  return {
+    darwin: `${homedir}/Library/Fonts`,
+    linux: `${homedir}/.local/share/fonts`,
+    win32: `${homedir}/AppData/Local/Microsoft/Windows/Fonts`
+  }[process.platform];
+};
+
+const testFontDestination = () => {
+  const dir = testFontUserDir();
+  if (!dir) {
+    throw new Error(`No user font directory for platform ${process.platform}`);
+  }
+  return path.join(dir, 'Monoton-Regular.ttf');
+};
+
+const getTestFontInstalled = () => fs.existsSync(testFontDestination());
+
+const setTestFontInstalled = (installed) => {
+  const destination = testFontDestination();
+  if (installed) {
+    fs.mkdirSync(path.dirname(destination), { recursive: true });
+    fs.copyFileSync(testFontSource, destination);
+  } else if (fs.existsSync(destination)) {
+    fs.unlinkSync(destination);
+  }
+  if (getTestFontInstalled() !== Boolean(installed)) {
+    throw new Error(
+      `Failed to ${installed ? 'install' : 'remove'} test font at ${destination}`);
+  }
+  return installed;
+};
+
 module.exports = {
   getTimezone,
   setTimezone,
@@ -258,5 +297,7 @@ module.exports = {
   getScreenSize,
   getNextSmallerScreenSize,
   listScreenSizes,
-  setScreenSize
+  setScreenSize,
+  getTestFontInstalled,
+  setTestFontInstalled
 };

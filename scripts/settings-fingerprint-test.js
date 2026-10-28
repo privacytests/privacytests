@@ -22,6 +22,8 @@ const settingsFingerprintConfigs = [
     // AZERTY vs QWERTZ — distinguishable via Keyboard Map API.
     keyboardLayout: 'French',
     screenSize: screenSizeA,
+    // Monoton custom font installed vs absent.
+    testFontInstalled: true,
     reducedMotion: true,
     reducedTransparency: true,
     increaseContrast: true
@@ -33,6 +35,7 @@ const settingsFingerprintConfigs = [
     keyboardLayout: 'German',
     // Filled in at run time: next enumerated mode smaller than A in both dims.
     screenSize: null,
+    testFontInstalled: false,
     reducedMotion: false,
     reducedTransparency: false,
     increaseContrast: false
@@ -44,11 +47,12 @@ const log = (...args) => {
 };
 
 const settingLabel = ({
-  timezone, languages, keyboardLayout, screenSize,
+  timezone, languages, keyboardLayout, screenSize, testFontInstalled,
   reducedMotion, reducedTransparency, increaseContrast
 }) =>
   `${timezone}; languages=${languages.join(',')}; keyboardLayout=${keyboardLayout}; ` +
   (screenSize ? `screen=${screenSize.width}x${screenSize.height}; ` : '') +
+  `testFontInstalled=${testFontInstalled}; ` +
   `reducedMotion=${reducedMotion}; reducedTransparency=${reducedTransparency}; ` +
   `increaseContrast=${increaseContrast}`;
 
@@ -63,7 +67,8 @@ const relevantSettingForProbe = {
   'screen.width': ({ screenSize }) =>
     (screenSize ? `${screenSize.width}x${screenSize.height}` : null),
   'screen.height': ({ screenSize }) =>
-    (screenSize ? `${screenSize.width}x${screenSize.height}` : null)
+    (screenSize ? `${screenSize.width}x${screenSize.height}` : null),
+  systemFont: ({ testFontInstalled }) => String(testFontInstalled)
 };
 
 const screenSizeKey = ({ width, height }) => `${width}x${height}`;
@@ -102,6 +107,7 @@ const saveOriginalSettings = () => {
     languages: systemSettings.getLanguages(),
     keyboardLayout: systemSettings.getKeyboardLayout(),
     screenSize: systemSettings.getScreenSize(),
+    testFontInstalled: systemSettings.getTestFontInstalled(),
     reducedMotion: systemSettings.getReducedMotion(),
     reducedTransparency: systemSettings.getReducedTransparency(),
     increaseContrast: systemSettings.getIncreaseContrast()
@@ -125,6 +131,7 @@ const restoreOriginalSettings = () => {
     if (varyScreenSize && originalSettings.screenSize) {
       systemSettings.setScreenSize(originalSettings.screenSize);
     }
+    systemSettings.setTestFontInstalled(originalSettings.testFontInstalled);
     systemSettings.setReducedMotion(originalSettings.reducedMotion);
     systemSettings.setReducedTransparency(originalSettings.reducedTransparency);
     systemSettings.setIncreaseContrast(originalSettings.increaseContrast);
@@ -217,6 +224,7 @@ const runSettingsFingerprintTests = async (browserSession, { runPageTest }) => {
       if (varyScreenSize) {
         systemSettings.setScreenSize(applied.screenSize);
       }
+      systemSettings.setTestFontInstalled(applied.testFontInstalled);
       systemSettings.setReducedMotion(applied.reducedMotion);
       systemSettings.setReducedTransparency(applied.reducedTransparency);
       systemSettings.setIncreaseContrast(applied.increaseContrast);

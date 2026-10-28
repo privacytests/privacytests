@@ -48,7 +48,6 @@ on:
           - all
           - session
           - main
-          - supplementary
           - misc
           - https
           - trackingCookies

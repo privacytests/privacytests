@@ -94,25 +94,6 @@ const fetchIpAddress = async () => {
 
 // ## Prepare system
 
-// Install Monoton as a system font so that we can see if
-// it is leaked by browsers. NOTE: Only works in macOS currently.
-const installTestFontIfNeeded = () => {
-  const homedir = os.homedir();
-  const userFontDir = {
-    darwin: `${homedir}/Library/Fonts`,
-    linux: `${homedir}/.local/share/fonts`,
-    win32: `${homedir}/AppData/Local/Microsoft/Windows/Fonts`
-  }[process.platform];
-  if (!fs.existsSync(userFontDir)) {
-    fs.mkdirSync(userFontDir, { recursive: true });
-  }
-  const fontDestination = `${userFontDir}/Monoton-Regular.ttf`;
-  if (!fs.existsSync(fontDestination)) {
-    fs.copyFileSync(path.join(__dirname, '../assets/fonts/Monoton-Regular.ttf'),
-      fontDestination);
-  }
-};
-
 // ## Websocket utilities
 
 const eventPromise = async (eventSource, eventType, timeout) =>
@@ -441,7 +422,7 @@ const runTrackingCookieTest = async (browserSession) => {
 // Run the first stage of privacy tests. Returns
 // a map of test types to test result maps. Such as
 // `
-// { "fingerprinting" : { "System font detection" : { /* results */ }, ... },
+  // { "fingerprinting" : { "navigator.hardwareConcurrency" : { /* results */ }, ... },
 //   "misc" : { ... },
 //   "https" : { ... },
 //   "navigation" : { ... },
@@ -467,15 +448,6 @@ const runTestsStage1 = async ({ browserSession, categories }) => {
     const mainResults = await runMainTests(browserSession, categories);
     results = { ...results, ...mainResults };
     await sleepMs(1000);
-  }
-  // Supplementary tests
-  if (browserSession.browser instanceof DesktopBrowser &&
-    (categories.includes('supplementary'))) {
-    const supplementaryResults = await runPageTest(browserSession, `${kIframeRootSame}/supplementary.html`);
-    results.fingerprinting = {
-      ...results.fingerprinting,
-      ...{ 'System font detection': supplementaryResults['System font detection'] }
-    };
   }
   // Misc
   if (categories.includes('misc')) {
@@ -795,7 +767,7 @@ const readConfig = (commandLineData) => {
   }
   if (!config.categories) {
     config.categories = [
-      'session', 'main', 'supplementary', 'misc', 'https', 'trackingCookies'
+      'session', 'main', 'misc', 'https', 'trackingCookies'
     ];
     // DNS leak tests need monitor-dns.js on the Mac; not used for mobile yet.
     // Fingerprint / settings-fingerprint probes use a fresh desktop browser instance.
@@ -898,7 +870,6 @@ const main = async () => {
     const commandLineData = minimist(process.argv.slice(2));
     config = readConfig(commandLineData);
     if (!config.android && !config.ios) {
-      installTestFontIfNeeded();
       await DesktopBrowser.setGlobalProxyUsageEnabled(false);
       const preferredNetworkService = systemNetworkSettings.getPreferredNetworkService();
       originalDnsIps = systemNetworkSettings.getDNS(preferredNetworkService);
