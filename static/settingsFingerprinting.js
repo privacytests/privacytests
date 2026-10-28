@@ -90,18 +90,21 @@ const settingsFingerprintTests = [
     probe: () => {
       // Same text with Monoton first; if Monoton applies, both widths match.
       // If it does not, monospace vs sans-serif fallbacks diverge.
-      const div1 = document.createElement('div');
-      div1.textContent = 'font fingerprinting';
-      div1.setAttribute('style', 'font-family: Monoton, Rosemary, monospace');
-      const div2 = document.createElement('div');
-      div2.textContent = 'font fingerprinting';
-      div2.setAttribute('style', 'font-family: Monoton, Rosemary, sans-serif');
-      document.body.appendChild(div1);
-      document.body.appendChild(div2);
-      const width1 = div1.getBoundingClientRect().width;
-      const width2 = div2.getBoundingClientRect().width;
-      div1.remove();
-      div2.remove();
+      // Must be inline — a block div's getBoundingClientRect().width is the
+      // parent width, so both sides would always "match".
+      const measure = (fontFamily) => {
+        const span = document.createElement('span');
+        span.textContent = 'font fingerprinting';
+        span.setAttribute(
+          'style',
+          `position:absolute;left:-9999px;top:0;font-size:72px;font-family:${fontFamily}`);
+        document.body.appendChild(span);
+        const width = span.getBoundingClientRect().width;
+        span.remove();
+        return width;
+      };
+      const width1 = measure('Monoton, Rosemary, monospace');
+      const width2 = measure('Monoton, Rosemary, sans-serif');
       const sameWidth = Math.abs(width2 - width1) <= 0.01;
       return sameWidth ? 'detected' : 'not-detected';
     }
