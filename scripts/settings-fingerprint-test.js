@@ -52,6 +52,20 @@ const settingLabel = ({
   `reducedMotion=${reducedMotion}; reducedTransparency=${reducedTransparency}; ` +
   `increaseContrast=${increaseContrast}`;
 
+// Each probe only cares about one A/B dimension — tooltips should show that alone.
+const relevantSettingForProbe = {
+  timeZone: ({ timezone }) => timezone,
+  'navigator.languages': ({ languages }) => languages.join(','),
+  'prefers-reduced-motion': ({ reducedMotion }) => String(reducedMotion),
+  'prefers-reduced-transparency': ({ reducedTransparency }) => String(reducedTransparency),
+  'prefers-contrast': ({ increaseContrast }) => String(increaseContrast),
+  keyboardLayoutMap: ({ keyboardLayout }) => keyboardLayout,
+  'screen.width': ({ screenSize }) =>
+    (screenSize ? `${screenSize.width}x${screenSize.height}` : null),
+  'screen.height': ({ screenSize }) =>
+    (screenSize ? `${screenSize.width}x${screenSize.height}` : null)
+};
+
 const screenSizeKey = ({ width, height }) => `${width}x${height}`;
 
 // Resolve B's screen size from available modes; return false if A/B can't both run.
@@ -149,7 +163,7 @@ const mergeSettingsFingerprintResults = (perSetting) => {
   const merged = {};
   for (const name of names) {
     const items = perSetting
-      .map(({ setting, results }) => ({ setting, result: results[name] }))
+      .map(({ config, results }) => ({ config, result: results[name] }))
       .filter(({ result }) => result);
     if (items.length === 0) {
       continue;
@@ -159,10 +173,14 @@ const mergeSettingsFingerprintResults = (perSetting) => {
     const allFarbled = randomized.every(Boolean);
     const stableAcrossSettings = values.every(
       v => JSON.stringify(v) === JSON.stringify(values[0]));
+    const relevant = relevantSettingForProbe[name];
+    const settings = relevant
+      ? items.map(({ config }) => relevant(config)).filter(v => v != null)
+      : items.map(({ config }) => settingLabel(config));
     merged[name] = {
       description: items[0].result.description,
       value: values,
-      settings: items.map(({ setting }) => setting),
+      settings,
       randomized,
       passed: allFarbled || stableAcrossSettings,
       ...(items.some(({ result }) => result.error)
@@ -229,7 +247,7 @@ const runSettingsFingerprintTests = async (browserSession, { runPageTest }) => {
           perDomain.push(await runPageTest(browserSession, url));
         }
         perSetting.push({
-          setting: settingLabel(applied),
+          config: applied,
           results: mergeDomainResults(perDomain)
         });
       } finally {
