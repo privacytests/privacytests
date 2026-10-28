@@ -22,8 +22,8 @@ const settingsFingerprintConfigs = [
     // AZERTY vs QWERTZ — distinguishable via Keyboard Map API.
     keyboardLayout: 'French',
     screenSize: screenSizeA,
-    // Monoton custom font installed vs absent.
-    testFontInstalled: true,
+    // Absent first, then install — avoids stale font-cache after deletion.
+    testFontInstalled: false,
     reducedMotion: true,
     reducedTransparency: true,
     increaseContrast: true
@@ -35,7 +35,7 @@ const settingsFingerprintConfigs = [
     keyboardLayout: 'German',
     // Filled in at run time: next enumerated mode smaller than A in both dims.
     screenSize: null,
-    testFontInstalled: false,
+    testFontInstalled: true,
     reducedMotion: false,
     reducedTransparency: false,
     increaseContrast: false

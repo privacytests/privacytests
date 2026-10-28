@@ -271,8 +271,16 @@ const setTestFontInstalled = (installed) => {
   if (installed) {
     fs.mkdirSync(path.dirname(destination), { recursive: true });
     fs.copyFileSync(testFontSource, destination);
-  } else if (fs.existsSync(destination)) {
-    fs.unlinkSync(destination);
+  } else {
+    // Always attempt removal so case A starts from a clean slate even if a
+    // previous run left Monoton in the user font directory.
+    try {
+      fs.unlinkSync(destination);
+    } catch (e) {
+      if (e.code !== 'ENOENT') {
+        throw e;
+      }
+    }
   }
   if (getTestFontInstalled() !== Boolean(installed)) {
     throw new Error(
