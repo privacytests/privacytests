@@ -267,7 +267,7 @@ app.post('/post', (req, res) => {
   // console.log(req.body);
   const { sessionId, data, category } = req.body;
   console.log('RECEIVED: ', category);
-  if (['supplementary', 'fingerprinting', 'insecure', 'upgradable_address', 'toplevel',
+  if (['supplementary', 'fingerprinting', 'settings_fingerprinting', 'insecure', 'upgradable_address', 'toplevel',
     'nothing', 'hsts', 'hsts2', 'tracking_cookies',
     'session_read_3p', 'session_write_3p',
     'session_read_1p', 'session_write_1p'].includes(category)) {
