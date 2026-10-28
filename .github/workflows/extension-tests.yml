@@ -22,8 +22,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # One rep for now; expand this list later (cartesian with config).
-        repetitions: [1]
+        # Same five OS×arch slots as desktop-tests.yml (ids 1–5 for render-multiple).
+        repetitions:
+          - { id: 1, runner: macos-26 }
+          - { id: 2, runner: macos-15 }
+          - { id: 3, runner: macos-26-intel }
+          - { id: 4, runner: macos-15-intel }
+          - { id: 5, runner: macos-26 }
         # Stock Chrome plus privacy extensions (Web Store ids).
         config:
           - { slug: chrome, extension: '' }
@@ -36,7 +41,7 @@ jobs:
           - { slug: chrome-privacy-badger, extension: pkehgijcmpdhfbdbbnkijodmdjhbjlgp }
           - { slug: chrome-jshelter, extension: ammoloihpcbognfddfjcljgembpibcmb }
           - { slug: chrome-privacy-magic, extension: cobojehlalmfnplnblndhofhgeglljkc }
-    runs-on: macos-latest
+    runs-on: ${{ matrix.repetitions.runner }}
     defaults:
       run:
         working-directory: scripts
@@ -54,13 +59,15 @@ jobs:
 
       - name: Run tests
         run: |
-          RESULT_FILE="${{ matrix.config.slug }}-${{ matrix.repetitions }}"
+          RESULT_FILE="${{ matrix.config.slug }}-${{ matrix.repetitions.id }}"
           echo "RESULT_FILE=${RESULT_FILE}" >> "$GITHUB_ENV"
           EXTENSION_FLAG=""
           if [ -n "${{ matrix.config.extension }}" ]; then
             EXTENSION_FLAG="--extension=${{ matrix.config.extension }}"
           fi
-          node test --browser=chrome ${EXTENSION_FLAG} --out=../${RESULT_FILE}.json
+          node test --browser=chrome ${EXTENSION_FLAG} \
+            --runner=${{ matrix.repetitions.runner }} \
+            --out=../${RESULT_FILE}.json
         timeout-minutes: 90
 
       - name: Upload results
