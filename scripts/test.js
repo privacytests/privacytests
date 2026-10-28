@@ -827,6 +827,7 @@ const allDesktopBrowserSpecs = (config) =>
 let cleanupRan = false;
 let originalDnsIps;
 let originalTimezone;
+let originalLanguages;
 const cleanupAndShutdown = async (exitCode) => {
   if (!cleanupRan) {
     try {
@@ -847,6 +848,13 @@ const cleanupAndShutdown = async (exitCode) => {
           systemSettings.setTimezone(originalTimezone);
         } catch (e) {
           log('cleanup: failed to restore timezone', e);
+        }
+      }
+      if (originalLanguages !== undefined && originalLanguages.length > 0) {
+        try {
+          systemSettings.setLanguages(originalLanguages);
+        } catch (e) {
+          log('cleanup: failed to restore languages', e);
         }
       }
       cleanupRan = true;
@@ -908,6 +916,7 @@ const main = async () => {
       originalDnsIps = systemNetworkSettings.getDNS(preferredNetworkService);
       if (os.platform() === 'darwin') {
         originalTimezone = systemSettings.getTimezone();
+        originalLanguages = systemSettings.getLanguages();
       }
       const activeVpnCount = await DesktopBrowser.countActiveVpns();
       if (activeVpnCount > 0) {

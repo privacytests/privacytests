@@ -7,6 +7,11 @@ const settingsFingerprintTests = [
     name: 'timeZone',
     description: 'IANA time zone from Intl.DateTimeFormat().resolvedOptions().timeZone. Should not change when the OS time zone changes (or should be farbled per site).',
     probe: () => String(Intl.DateTimeFormat().resolvedOptions().timeZone)
+  },
+  {
+    name: 'navigator.languages',
+    description: 'navigator.languages as JSON. Under settings A/B the OS preferred list is en,fr vs en,de. A stable value (e.g. only English) means the browser is censoring additional languages; a changing list means the second language is exposed.',
+    probe: () => JSON.stringify(Array.from(navigator.languages || []))
   }
 ];
 

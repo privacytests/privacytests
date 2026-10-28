@@ -10,14 +10,19 @@ const settingsRoots = [
   'https://test-pages.privacytests3.org'
 ];
 
+// A/B pairs: same primary language, different second language — and distinct
+// time zones — so we can see whether browsers expose those setting changes.
 const settingsFingerprintConfigs = [
-  { id: 'A', timezone: 'Europe/Paris' },
-  { id: 'B', timezone: 'Europe/Berlin' }
+  { id: 'A', timezone: 'Europe/Paris', languages: ['en', 'fr'] },
+  { id: 'B', timezone: 'Europe/Berlin', languages: ['en', 'de'] }
 ];
 
 const log = (...args) => {
   console.log(new Date().toISOString(), ...args);
 };
+
+const settingLabel = ({ timezone, languages }) =>
+  `${timezone}; languages=${languages.join(',')}`;
 
 // Merge per-domain probe results. Differing values across first parties → farbled.
 const mergeDomainResults = (perDomain) => {
@@ -73,8 +78,18 @@ const mergeSettingsFingerprintResults = (perSetting) => {
   return merged;
 };
 
+// Firefox prefers intl.accept_languages over AppleLanguages for navigator.languages.
+const applyFirefoxAcceptLanguages = async (browserSession, languages) => {
+  if (browserSession.browser._defaults?.basedOn !== 'firefox') {
+    return;
+  }
+  await browserSession.browser.kill();
+  await browserSession.browser.setPref('intl.accept_languages', languages.join(','));
+  await browserSession.browser.launch(false);
+};
+
 // Apply each OS settings config, launch a fresh browser, run the three-domain
-// settings fingerprint page, then restore the prior timezone.
+// settings fingerprint page, then restore prior timezone/languages.
 // `runPageTest` is injected from test.js (websocket/session helper).
 const runSettingsFingerprintTests = async (browserSession, { runPageTest }) => {
   if (os.platform() !== 'darwin') {
@@ -82,24 +97,30 @@ const runSettingsFingerprintTests = async (browserSession, { runPageTest }) => {
     return {};
   }
   const originalTimezone = systemSettings.getTimezone();
-  log('settings fingerprinting: saved timezone', { originalTimezone });
+  const originalLanguages = systemSettings.getLanguages();
+  log('settings fingerprinting: saved', { originalTimezone, originalLanguages });
   try {
     const perSetting = [];
     for (const config of settingsFingerprintConfigs) {
       log('settings fingerprinting: applying', config);
       systemSettings.setTimezone(config.timezone);
-      // Give the OS / browsers a moment to notice the new zone.
+      systemSettings.setLanguages(config.languages);
+      // Give the OS / browsers a moment to notice the new settings.
       await sleepMs(2000);
       await browserSession.browser.launch(true);
       try {
+        await applyFirefoxAcceptLanguages(browserSession, config.languages);
         const perDomain = [];
         for (const root of settingsRoots) {
           const url = `${root}/settingsFingerprinting.html`;
-          log('settings fingerprint domain', { setting: config.timezone, url });
+          log('settings fingerprint domain', {
+            setting: settingLabel(config),
+            url
+          });
           perDomain.push(await runPageTest(browserSession, url));
         }
         perSetting.push({
-          setting: config.timezone,
+          setting: settingLabel(config),
           results: mergeDomainResults(perDomain)
         });
       } finally {
@@ -109,10 +130,13 @@ const runSettingsFingerprintTests = async (browserSession, { runPageTest }) => {
     return { settings_fingerprinting: mergeSettingsFingerprintResults(perSetting) };
   } finally {
     try {
-      log('settings fingerprinting: restoring timezone', { originalTimezone });
+      log('settings fingerprinting: restoring', { originalTimezone, originalLanguages });
       systemSettings.setTimezone(originalTimezone);
+      if (originalLanguages.length > 0) {
+        systemSettings.setLanguages(originalLanguages);
+      }
     } catch (e) {
-      log('settings fingerprinting: failed to restore timezone', e);
+      log('settings fingerprinting: failed to restore settings', e);
     }
   }
 };
