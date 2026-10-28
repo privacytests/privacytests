@@ -56,7 +56,7 @@ Options:
 * `--app-dir=/path/to/apps`: directory containing browsers (default: `/Applications/`)
 * `--filename=my-results`: filename prefix for results files
 * `--out=./results.json`: full path for the results JSON file
-* `--categories=misc,https`: limit test categories (`main`, `misc`, `https`, `session`, `trackingCookies`, `dns`, `fingerprint`, `settingsFingerprint`)
+* `--categories=misc,https`: limit test categories (`main`, `misc`, `https`, `session`, `trackingCookies`, `dns`, `deviceFingerprint`, `settingsFingerprint`)
 * `--skip=dns`: skip test categories
 * `--hurry`: skip the 60s feature-flag warmup on desktop
 * `--kill`: quit all desktop browsers

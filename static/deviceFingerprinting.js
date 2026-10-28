@@ -46,13 +46,13 @@ const uaClientHintProbes = uaClientHintDefs.map(({ hint, description }) => ({
   }
 }));
 
-// Fingerprinting probes. Each entry exposes a named value that can help
+// Device fingerprinting probes. Each entry exposes a named value that can help
 // distinguish browsers/devices. `probe` may be sync or async.
 // Every probe returns a string (`"undefined"` when the API is missing).
 // WebGL probes omitted for now: CI macOS runners often cannot create a WebGL
 // context (Firefox/Safari system GL; Intel Chrome blocklist), so results were
 // mostly `"undefined"` and not realistic hardware signals.
-const fingerprintTests = [
+const deviceFingerprintTests = [
   {
     name: 'navigator.hardwareConcurrency',
     description: 'Approximate number of logical CPU cores reported by the browser. Often differs between arm64 and Intel hosts and is commonly used in browser fingerprints.',
@@ -197,7 +197,7 @@ const runProbe = async ({ name, description, probe }) => {
 const runTests = async () => {
   const results = {};
   const resultsDiv = document.getElementById('test_results');
-  for (const test of fingerprintTests) {
+  for (const test of deviceFingerprintTests) {
     const result = await runProbe(test);
     results[test.name] = {
       description: result.description,
@@ -213,7 +213,7 @@ const runTests = async () => {
     }
   }
   document.body.setAttribute('data-test-results', JSON.stringify(results));
-  await postDataAndCarryOn(results, 'fingerprinting');
+  await postDataAndCarryOn(results, 'device_fingerprinting');
 };
 
 runTests();

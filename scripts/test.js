@@ -422,7 +422,7 @@ const runTrackingCookieTest = async (browserSession) => {
 // Run the first stage of privacy tests. Returns
 // a map of test types to test result maps. Such as
 // `
-  // { "fingerprinting" : { "navigator.hardwareConcurrency" : { /* results */ }, ... },
+  // { "device_fingerprinting" : { "navigator.hardwareConcurrency" : { /* results */ }, ... },
 //   "misc" : { ... },
 //   "https" : { ... },
 //   "navigation" : { ... },
@@ -498,9 +498,9 @@ const runTestsStage2 = async ({ browserSession, categories }) => {
   return results;
 };
 
-// Merge per-domain fingerprint probe results. If a probe's value differs
-// across first parties, the browser is farbling/randomizing → mark randomized.
-const mergeFingerprintDomainResults = (perDomain) => {
+// Merge per-domain platform-fingerprint probe results. If a probe's value
+// differs across first parties, the browser is farbling/randomizing → mark randomized.
+const mergeDeviceFingerprintDomainResults = (perDomain) => {
   const names = new Set(perDomain.flatMap(results => Object.keys(results)));
   const merged = {};
   for (const name of names) {
@@ -523,21 +523,23 @@ const mergeFingerprintDomainResults = (perDomain) => {
   return merged;
 };
 
-// Fingerprint probes in a fresh browser (clean profile), on three first-party
-// domains. Farbling (different values per domain) → pass at aggregate time;
-// otherwise pass iff the value is stable across runners/SKUs.
-const runFingerprintTests = async (browserSession) => {
-  const fingerprintRoots = [kIframeRootSame, kIframeRootDifferent, kIframeRootThird];
-  log('running fingerprint probes (fresh browser)', { domains: fingerprintRoots.length });
+// Device fingerprint probes in a fresh browser (clean profile), on three
+// first-party domains. Farbling (different values per domain) → pass at
+// aggregate time; otherwise pass iff the value is stable across runners/SKUs.
+const runDeviceFingerprintTests = async (browserSession) => {
+  const deviceFingerprintRoots = [kIframeRootSame, kIframeRootDifferent, kIframeRootThird];
+  log('running device fingerprint probes (fresh browser)', {
+    domains: deviceFingerprintRoots.length
+  });
   await browserSession.browser.launch(true);
   try {
     const perDomain = [];
-    for (const root of fingerprintRoots) {
-      const url = `${root}/fingerprint.html`;
-      log('fingerprint domain', { url });
+    for (const root of deviceFingerprintRoots) {
+      const url = `${root}/deviceFingerprinting.html`;
+      log('device fingerprint domain', { url });
       perDomain.push(await runPageTest(browserSession, url));
     }
-    return { fingerprinting: mergeFingerprintDomainResults(perDomain) };
+    return { device_fingerprinting: mergeDeviceFingerprintDomainResults(perDomain) };
   } finally {
     await browserSession.browser.kill();
   }
@@ -608,7 +610,7 @@ const runTests = async (
 
     let testResultsStage2 = null;
     let testResultsStage3 = null;
-    let testResultsFingerprint = null;
+    let testResultsDeviceFingerprint = null;
     let testResultsSettingsFingerprint = null;
     if (!android && !ios) {
       await DesktopBrowser.setGlobalProxyUsageEnabled(true, mitmProxyPort);
@@ -624,10 +626,10 @@ const runTests = async (
       if (categories.includes('dns')) {
         testResultsStage3 = await runDnsTests(browserSession);
       }
-      if (categories.includes('fingerprint')) {
-        testResultsFingerprint = await deadlinePromise(
-          `${browserSpec.browser} fingerprint`,
-          runFingerprintTests(browserSession),
+      if (categories.includes('deviceFingerprint')) {
+        testResultsDeviceFingerprint = await deadlinePromise(
+          `${browserSpec.browser} deviceFingerprint`,
+          runDeviceFingerprintTests(browserSession),
           240000);
       }
       if (categories.includes('settingsFingerprint')) {
@@ -639,10 +641,10 @@ const runTests = async (
     }
 
     const testResults = Object.assign({}, testResultsStage1, testResultsStage2, testResultsStage3);
-    if (testResultsFingerprint?.fingerprinting) {
-      testResults.fingerprinting = {
-        ...testResults.fingerprinting,
-        ...testResultsFingerprint.fingerprinting
+    if (testResultsDeviceFingerprint?.device_fingerprinting) {
+      testResults.device_fingerprinting = {
+        ...testResults.device_fingerprinting,
+        ...testResultsDeviceFingerprint.device_fingerprinting
       };
     }
     if (testResultsSettingsFingerprint?.settings_fingerprinting) {
@@ -770,9 +772,9 @@ const readConfig = (commandLineData) => {
       'session', 'main', 'misc', 'https', 'trackingCookies'
     ];
     // DNS leak tests need monitor-dns.js on the Mac; not used for mobile yet.
-    // Fingerprint / settings-fingerprint probes use a fresh desktop browser instance.
+    // Device / settings fingerprint probes use a fresh desktop browser instance.
     if (!config.android && !config.ios) {
-      config.categories.push('dns', 'fingerprint', 'settingsFingerprint');
+      config.categories.push('dns', 'deviceFingerprint', 'settingsFingerprint');
     }
   }
   if (config.skip) {

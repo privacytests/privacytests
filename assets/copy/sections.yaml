@@ -39,8 +39,8 @@
   tooltipType: simple
 
 
-- category: fingerprinting
-  name: Fingerprinting resistance tests
+- category: device_fingerprinting
+  name: Device fingerprinting resistance tests
   tagline: Which browsers hide what's unique about your device?
   description: >
     Fingerprinting is a technique trackers use to uniquely identify you as you browse the web.
@@ -50,7 +50,7 @@
     disclosed by certain web APIs so your browser is harder to pick out from the crowd
     (so-called 'fingerprinting resistance'). Some browsers may also randomize values
     to make it hard to track you across websites.`,
-  tooltipType: fingerprinting
+  tooltipType: device_fingerprinting
 
 - category: settings_fingerprinting
   name: Settings fingerprinting resistance tests

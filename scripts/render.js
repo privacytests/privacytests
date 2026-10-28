@@ -219,10 +219,10 @@ const testBody = ({ passed, testFailed, tooltip, unsupported }) => {
 //  ${allUnsupported ? '&ndash;' : '&nbsp;'}
 const tooltipFunctions = {};
 
-// Fingerprinting tooltips: value-based probes show collected values
+// Device fingerprinting tooltips: value-based probes show collected values
 // (compared across platforms at aggregate time); legacy rows use simple.
-tooltipFunctions.fingerprinting = fingerprintingItem =>
-  tooltipFunctions.simple(fingerprintingItem);
+tooltipFunctions.device_fingerprinting = deviceFingerprintingItem =>
+  tooltipFunctions.simple(deviceFingerprintingItem);
 
 // Settings fingerprinting: values collected under OS settings A vs B.
 tooltipFunctions.settings_fingerprinting = settingsItem =>
@@ -463,13 +463,13 @@ const resultsKeys = [
   'unsupported', 'upgraded', 'cookieFound', 'leak detected'
 ];
 
-// Value-based fingerprint probes:
+// Value-based device fingerprint probes:
 // - If every trial farbled across first parties (randomized), pass.
 // - Otherwise pass iff the (stable per-site) value matches across SKUs.
 // Legacy rows (e.g. fonts) already have `passed` and no `value`.
-const scoreFingerprintingConsistency = (results) => {
+const scoreDeviceFingerprintingConsistency = (results) => {
   for (const test of results.all_tests || []) {
-    for (const result of Object.values(test.testResults?.fingerprinting || {})) {
+    for (const result of Object.values(test.testResults?.device_fingerprinting || {})) {
       if (!('value' in result)) {
         continue;
       }
@@ -499,7 +499,7 @@ const aggregateRepeatedTrials = (results) => {
       if (aggregatedResults.has(key)) {
         const testResultsForRound = aggregatedResults.get(key).testResults;
         if (testResultsForRound) {
-          for (const subcategory of ['supercookies', 'session_1p', 'session_3p', 'fingerprinting',
+          for (const subcategory of ['supercookies', 'session_1p', 'session_3p', 'device_fingerprinting',
             'settings_fingerprinting', 'https', 'misc', 'navigation',
             'query', 'trackers', 'tracker_cookies', 'dns']) {
             const someTests = testResultsForRound[subcategory];
@@ -526,7 +526,7 @@ const aggregateRepeatedTrials = (results) => {
   }
   const resultsCopy = deepCopy(results);
   resultsCopy.all_tests = [...aggregatedResults.values()];
-  return scoreFingerprintingConsistency(resultsCopy);
+  return scoreDeviceFingerprintingConsistency(resultsCopy);
 };
 
 const getMergedResults = (dataFiles) => {

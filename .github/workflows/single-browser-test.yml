@@ -52,7 +52,7 @@ on:
           - https
           - trackingCookies
           - dns
-          - fingerprint
+          - deviceFingerprint
           - settingsFingerprint
         default: all
 
