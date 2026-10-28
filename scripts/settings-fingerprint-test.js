@@ -10,6 +10,8 @@ const settingsRoots = [
   'https://test-pages.privacytests3.org'
 ];
 
+const screenSizeA = { width: 1920, height: 1080 };
+
 // A/B pairs: distinct time zones, second languages, and a11y display toggles
 // so we can see whether browsers expose those setting changes.
 const settingsFingerprintConfigs = [
@@ -19,6 +21,7 @@ const settingsFingerprintConfigs = [
     languages: ['en', 'fr'],
     // AZERTY vs QWERTZ — distinguishable via Keyboard Map API.
     keyboardLayout: 'French',
+    screenSize: screenSizeA,
     reducedMotion: true,
     reducedTransparency: true,
     increaseContrast: true
@@ -28,6 +31,8 @@ const settingsFingerprintConfigs = [
     timezone: 'Europe/Berlin',
     languages: ['en', 'de'],
     keyboardLayout: 'German',
+    // Resolved at apply time: largest available mode smaller than A in both dims.
+    screenSize: null,
     reducedMotion: false,
     reducedTransparency: false,
     increaseContrast: false
@@ -39,10 +44,11 @@ const log = (...args) => {
 };
 
 const settingLabel = ({
-  timezone, languages, keyboardLayout,
+  timezone, languages, keyboardLayout, screenSize,
   reducedMotion, reducedTransparency, increaseContrast
 }) =>
   `${timezone}; languages=${languages.join(',')}; keyboardLayout=${keyboardLayout}; ` +
+  `screen=${screenSize.width}x${screenSize.height}; ` +
   `reducedMotion=${reducedMotion}; reducedTransparency=${reducedTransparency}; ` +
   `increaseContrast=${increaseContrast}`;
 
@@ -57,6 +63,7 @@ const saveOriginalSettings = () => {
     timezone: systemSettings.getTimezone(),
     languages: systemSettings.getLanguages(),
     keyboardLayout: systemSettings.getKeyboardLayout(),
+    screenSize: systemSettings.getScreenSize(),
     reducedMotion: systemSettings.getReducedMotion(),
     reducedTransparency: systemSettings.getReducedTransparency(),
     increaseContrast: systemSettings.getIncreaseContrast()
@@ -76,6 +83,9 @@ const restoreOriginalSettings = () => {
     }
     if (originalSettings.keyboardLayout) {
       systemSettings.setKeyboardLayout(originalSettings.keyboardLayout);
+    }
+    if (originalSettings.screenSize) {
+      systemSettings.setScreenSize(originalSettings.screenSize);
     }
     systemSettings.setReducedMotion(originalSettings.reducedMotion);
     systemSettings.setReducedTransparency(originalSettings.reducedTransparency);
@@ -165,10 +175,15 @@ const runSettingsFingerprintTests = async (browserSession, { runPageTest }) => {
   try {
     const perSetting = [];
     for (const config of settingsFingerprintConfigs) {
+      if (!config.screenSize) {
+        config.screenSize = systemSettings.getNextSmallerScreenSize(screenSizeA);
+        log('settings fingerprinting: next-smaller screen size for B', config.screenSize);
+      }
       log('settings fingerprinting: applying', config);
       systemSettings.setTimezone(config.timezone);
       systemSettings.setLanguages(config.languages);
       systemSettings.setKeyboardLayout(config.keyboardLayout);
+      systemSettings.setScreenSize(config.screenSize);
       systemSettings.setReducedMotion(config.reducedMotion);
       systemSettings.setReducedTransparency(config.reducedTransparency);
       systemSettings.setIncreaseContrast(config.increaseContrast);

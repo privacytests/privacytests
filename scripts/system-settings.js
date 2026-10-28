@@ -5,9 +5,15 @@ const path = require('path');
 const run = (command) => execSync(command, { encoding: 'utf8' }).toString();
 
 const keyboardLayoutScript = path.join(__dirname, 'setkeyboardlayout.swift');
+const screenSizeScript = path.join(__dirname, 'screen-size', 'main.swift');
 
 const runKeyboardLayoutTool = (argument) =>
   run(`swift ${JSON.stringify(keyboardLayoutScript)} ${JSON.stringify(argument)}`).trim();
+
+const runScreenSizeTool = (...arguments_) => {
+  const args = arguments_.map(a => JSON.stringify(String(a))).join(' ');
+  return run(`swift ${JSON.stringify(screenSizeScript)} ${args}`).trim();
+};
 
 const getTimezone = () => {
   // "Time Zone: Europe/Paris" or similar.
@@ -162,6 +168,31 @@ const setKeyboardLayout = (layout) => {
   return actual;
 };
 
+// Main display resolution via scripts/screen-size (CoreGraphics).
+// Returns { width, height }.
+const parseScreenSize = (text) => {
+  const match = String(text).trim().match(/(\d+)\s*x\s*(\d+)/i);
+  if (!match) {
+    throw new Error(`Could not parse screen size from: ${text}`);
+  }
+  return { width: parseInt(match[1], 10), height: parseInt(match[2], 10) };
+};
+
+const getScreenSize = () => parseScreenSize(runScreenSizeTool('current'));
+
+// Largest available mode with width < W and height < H.
+const getNextSmallerScreenSize = ({ width, height }) =>
+  parseScreenSize(runScreenSizeTool('next-smaller', width, height));
+
+const setScreenSize = ({ width, height }) => {
+  const actual = parseScreenSize(runScreenSizeTool(width, height));
+  if (actual.width !== width || actual.height !== height) {
+    throw new Error(
+      `Failed to set screen size to ${width}x${height} (now ${actual.width}x${actual.height})`);
+  }
+  return actual;
+};
+
 module.exports = {
   getTimezone,
   setTimezone,
@@ -174,5 +205,8 @@ module.exports = {
   getIncreaseContrast,
   setIncreaseContrast,
   getKeyboardLayout,
-  setKeyboardLayout
+  setKeyboardLayout,
+  getScreenSize,
+  getNextSmallerScreenSize,
+  setScreenSize
 };
