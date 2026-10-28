@@ -65,33 +65,83 @@ const setLanguages = (languages) => {
   return actual;
 };
 
-// Accessibility → Reduce Motion. Browsers expose this as prefers-reduced-motion.
-const getReducedMotion = () => {
+const readBoolDefault = (domain, key) => {
   try {
-    const out = run('defaults read com.apple.Accessibility ReduceMotionEnabled').trim();
+    const out = run(`defaults read ${domain} ${key}`).trim();
     return out === '1' || out.toLowerCase() === 'true';
   } catch (e) {
     return false;
   }
 };
 
-const setReducedMotion = (enabled) => {
-  const flag = enabled ? '1' : '0';
-  const bool = enabled ? 'true' : 'false';
-  // Both domains are consulted depending on macOS / app; set both.
-  run(`defaults write com.apple.Accessibility ReduceMotionEnabled -int ${flag}`);
-  run(`defaults write com.apple.universalaccess reduceMotion -bool ${bool}`);
+const flushPrefs = () => {
   try {
     run('killall cfprefsd');
   } catch (e) {
     // Non-fatal; prefs usually still apply for newly launched apps.
   }
-  const actual = getReducedMotion();
+};
+
+// Write a paired Accessibility + universalaccess bool and verify via Accessibility.
+const setAccessibilityBool = ({
+  name,
+  accessibilityKey,
+  universalAccessKey,
+  enabled,
+  readDomain = 'com.apple.Accessibility',
+  readKey
+}) => {
+  const flag = enabled ? '1' : '0';
+  const bool = enabled ? 'true' : 'false';
+  run(`defaults write com.apple.Accessibility ${accessibilityKey} -int ${flag}`);
+  run(`defaults write com.apple.universalaccess ${universalAccessKey} -bool ${bool}`);
+  flushPrefs();
+  const actual = readBoolDefault(readDomain, readKey || accessibilityKey);
   if (actual !== Boolean(enabled)) {
-    throw new Error(`Failed to set Reduce Motion to ${enabled} (now ${actual})`);
+    throw new Error(`Failed to set ${name} to ${enabled} (now ${actual})`);
   }
   return actual;
 };
+
+// Accessibility → Reduce Motion. Browsers: prefers-reduced-motion.
+const getReducedMotion = () =>
+  readBoolDefault('com.apple.Accessibility', 'ReduceMotionEnabled');
+
+const setReducedMotion = (enabled) => setAccessibilityBool({
+  name: 'Reduce Motion',
+  accessibilityKey: 'ReduceMotionEnabled',
+  universalAccessKey: 'reduceMotion',
+  enabled
+});
+
+// Accessibility → Reduce Transparency. Browsers: prefers-reduced-transparency.
+const getReducedTransparency = () =>
+  readBoolDefault('com.apple.Accessibility', 'EnhancedBackgroundContrastEnabled') ||
+  readBoolDefault('com.apple.universalaccess', 'reduceTransparency');
+
+const setReducedTransparency = (enabled) => setAccessibilityBool({
+  name: 'Reduce Transparency',
+  accessibilityKey: 'EnhancedBackgroundContrastEnabled',
+  universalAccessKey: 'reduceTransparency',
+  enabled,
+  // Prefer universalaccess for verify; Accessibility key name is less obvious.
+  readDomain: 'com.apple.universalaccess',
+  readKey: 'reduceTransparency'
+});
+
+// Accessibility → Increase Contrast. Browsers: prefers-contrast: more.
+const getIncreaseContrast = () =>
+  readBoolDefault('com.apple.Accessibility', 'DarkenSystemColors') ||
+  readBoolDefault('com.apple.universalaccess', 'increaseContrast');
+
+const setIncreaseContrast = (enabled) => setAccessibilityBool({
+  name: 'Increase Contrast',
+  accessibilityKey: 'DarkenSystemColors',
+  universalAccessKey: 'increaseContrast',
+  enabled,
+  readDomain: 'com.apple.universalaccess',
+  readKey: 'increaseContrast'
+});
 
 module.exports = {
   getTimezone,
@@ -99,5 +149,9 @@ module.exports = {
   getLanguages,
   setLanguages,
   getReducedMotion,
-  setReducedMotion
+  setReducedMotion,
+  getReducedTransparency,
+  setReducedTransparency,
+  getIncreaseContrast,
+  setIncreaseContrast
 };

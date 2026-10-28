@@ -10,20 +10,24 @@ const settingsRoots = [
   'https://test-pages.privacytests3.org'
 ];
 
-// A/B pairs: distinct time zones, second languages, and reduced-motion so we
-// can see whether browsers expose those setting changes.
+// A/B pairs: distinct time zones, second languages, and a11y display toggles
+// so we can see whether browsers expose those setting changes.
 const settingsFingerprintConfigs = [
   {
     id: 'A',
     timezone: 'Europe/Paris',
     languages: ['en', 'fr'],
-    reducedMotion: true
+    reducedMotion: true,
+    reducedTransparency: true,
+    increaseContrast: true
   },
   {
     id: 'B',
     timezone: 'Europe/Berlin',
     languages: ['en', 'de'],
-    reducedMotion: false
+    reducedMotion: false,
+    reducedTransparency: false,
+    increaseContrast: false
   }
 ];
 
@@ -31,8 +35,12 @@ const log = (...args) => {
   console.log(new Date().toISOString(), ...args);
 };
 
-const settingLabel = ({ timezone, languages, reducedMotion }) =>
-  `${timezone}; languages=${languages.join(',')}; reducedMotion=${reducedMotion}`;
+const settingLabel = ({
+  timezone, languages, reducedMotion, reducedTransparency, increaseContrast
+}) =>
+  `${timezone}; languages=${languages.join(',')}; ` +
+  `reducedMotion=${reducedMotion}; reducedTransparency=${reducedTransparency}; ` +
+  `increaseContrast=${increaseContrast}`;
 
 // Snapshot of host settings before A/B mutation (also used by test.js cleanup).
 let originalSettings = null;
@@ -44,7 +52,9 @@ const saveOriginalSettings = () => {
   originalSettings = {
     timezone: systemSettings.getTimezone(),
     languages: systemSettings.getLanguages(),
-    reducedMotion: systemSettings.getReducedMotion()
+    reducedMotion: systemSettings.getReducedMotion(),
+    reducedTransparency: systemSettings.getReducedTransparency(),
+    increaseContrast: systemSettings.getIncreaseContrast()
   };
   log('settings fingerprinting: saved', originalSettings);
 };
@@ -60,6 +70,8 @@ const restoreOriginalSettings = () => {
       systemSettings.setLanguages(originalSettings.languages);
     }
     systemSettings.setReducedMotion(originalSettings.reducedMotion);
+    systemSettings.setReducedTransparency(originalSettings.reducedTransparency);
+    systemSettings.setIncreaseContrast(originalSettings.increaseContrast);
   } catch (e) {
     log('settings fingerprinting: failed to restore settings', e);
   }
@@ -149,6 +161,8 @@ const runSettingsFingerprintTests = async (browserSession, { runPageTest }) => {
       systemSettings.setTimezone(config.timezone);
       systemSettings.setLanguages(config.languages);
       systemSettings.setReducedMotion(config.reducedMotion);
+      systemSettings.setReducedTransparency(config.reducedTransparency);
+      systemSettings.setIncreaseContrast(config.increaseContrast);
       // Give the OS / browsers a moment to notice the new settings.
       await sleepMs(2000);
       await browserSession.browser.launch(true);

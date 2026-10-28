@@ -19,6 +19,20 @@ const settingsFingerprintTests = [
     probe: () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
       ? 'reduce'
       : 'no-preference'
+  },
+  {
+    name: 'prefers-reduced-transparency',
+    description: 'matchMedia("(prefers-reduced-transparency: reduce)") → "reduce" or "no-preference". Under settings A/B the OS Reduce Transparency toggle is on vs off.',
+    probe: () => window.matchMedia('(prefers-reduced-transparency: reduce)').matches
+      ? 'reduce'
+      : 'no-preference'
+  },
+  {
+    name: 'prefers-contrast',
+    description: 'matchMedia("(prefers-contrast: more)") → "more" or "no-preference". Under settings A/B the OS Increase Contrast toggle is on vs off.',
+    probe: () => window.matchMedia('(prefers-contrast: more)').matches
+      ? 'more'
+      : 'no-preference'
   }
 ];
 
