@@ -26,24 +26,31 @@ const compareVersions = (a, b) => {
   return 0;
 };
 
-const resolveGitHubReleaseAssetUrl = (repo, assetPattern) => {
+const macDmgArch = () => (process.arch === 'arm64' ? 'arm64' : 'x86_64');
+
+// GitHub releases, or another API with the same latest-release JSON shape.
+// `{arch}` in assetPattern is replaced with arm64 or x86_64.
+const resolveReleaseAssetUrl = ({ repo, apiUrl, assetPattern }) => {
+  const patternSource = assetPattern.replaceAll('{arch}', macDmgArch());
+  const url = apiUrl ?? `https://api.github.com/repos/${repo}/releases/latest`;
   const curlHeaders = [
-    '-H "Accept: application/vnd.github+json"',
+    `-H "Accept: ${apiUrl ? 'application/json' : 'application/vnd.github+json'}"`,
     '-H "User-Agent: privacytests.org-desktop-install"'
   ];
-  if (process.env.GITHUB_TOKEN) {
+  if (!apiUrl && process.env.GITHUB_TOKEN) {
     curlHeaders.push(`-H "Authorization: Bearer ${process.env.GITHUB_TOKEN}"`);
   }
   const release = JSON.parse(
-    execSync(`curl -sL ${curlHeaders.join(' ')} "https://api.github.com/repos/${repo}/releases/latest"`, { encoding: 'utf8' })
+    execSync(`curl -sL ${curlHeaders.join(' ')} "${url}"`, { encoding: 'utf8' })
   );
+  const source = repo ?? apiUrl;
   if (!Array.isArray(release.assets)) {
-    throw new Error(`GitHub API error for ${repo}: ${release.message ?? JSON.stringify(release)}`);
+    throw new Error(`Release API error for ${source}: ${release.message ?? JSON.stringify(release)}`);
   }
-  const pattern = new RegExp(assetPattern);
+  const pattern = new RegExp(patternSource);
   const asset = release.assets.find((entry) => pattern.test(entry.name));
   if (!asset) {
-    throw new Error(`No asset matching ${assetPattern} in ${repo} release ${release.tag_name}`);
+    throw new Error(`No asset matching ${patternSource} in ${source} release ${release.tag_name}`);
   }
   return asset.browser_download_url;
 };
@@ -109,8 +116,7 @@ const getDmgUrl = (installSettings) => {
     return resolveSparkleReleaseDmgUrl(installSettings.sparkleRelease);
   }
   if (installSettings.githubRelease) {
-    const { repo, assetPattern } = installSettings.githubRelease;
-    return resolveGitHubReleaseAssetUrl(repo, assetPattern);
+    return resolveReleaseAssetUrl(installSettings.githubRelease);
   }
   return installSettings.dmgUrl;
 };

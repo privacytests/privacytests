@@ -54,7 +54,10 @@ const macOSdefaultBrowserSettings = {
     basedOn: 'firefox',
     useOpen: true,
     env: { MOZ_DISABLE_AUTO_SAFE_MODE: '1' },
-    brewCask: 'librewolf',
+    githubRelease: {
+      apiUrl: 'https://librewolf.dev/api/v1/repos/librewolf/bsys6/releases/latest',
+      assetPattern: '^librewolf-.*-macos-{arch}-package\\.dmg$'
+    },
     postLaunchDelay: 5000
   },
   mullvad: {
