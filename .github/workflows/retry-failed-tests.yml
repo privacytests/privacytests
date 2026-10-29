@@ -2,7 +2,7 @@ name: Retry failed tests
 
 on:
   workflow_run:
-    workflows: ["Desktop tests", "Mobile tests"]
+    workflows: ["Desktop tests", "Mobile tests", "Extension tests"]
     types: [completed]
 
 jobs:
