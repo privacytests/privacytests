@@ -68,7 +68,7 @@ jobs:
           node test --browser=chrome ${EXTENSION_FLAG} \
             --runner=${{ matrix.repetitions.runner }} \
             --out=../${RESULT_FILE}.json
-        timeout-minutes: 90
+        timeout-minutes: 30
 
       - name: Upload results
         uses: actions/upload-artifact@v6

@@ -9,6 +9,7 @@ const { sleepMs } = require('./utils');
 
 const EXTENSION_ID_RE = /^[a-p]{32}$/;
 const STORE_UPDATE_URL = 'https://clients2.google.com/service/update2/crx';
+const CDP_COMMAND_TIMEOUT_MS = 10000;
 
 const validateExtensionId = (extensionId) => {
   const id = String(extensionId || '').trim();
@@ -76,6 +77,7 @@ const cdpClient = (ws) => {
       return;
     }
     pending.delete(msg.id);
+    clearTimeout(waiter.timer);
     if (msg.error) {
       waiter.reject(new Error(msg.error.message || 'CDP error'));
     } else {
@@ -90,12 +92,19 @@ const cdpClient = (ws) => {
         payload.sessionId = sessionId;
       }
       return new Promise((resolve, reject) => {
-        pending.set(id, { resolve, reject });
+        const timer = setTimeout(() => {
+          if (!pending.delete(id)) {
+            return;
+          }
+          reject(new Error(`CDP ${method} timed out after ${CDP_COMMAND_TIMEOUT_MS / 1000} s.`));
+        }, CDP_COMMAND_TIMEOUT_MS);
+        pending.set(id, { resolve, reject, timer });
         ws.send(JSON.stringify(payload));
       });
     },
     close () {
-      for (const { reject } of pending.values()) {
+      for (const { reject, timer } of pending.values()) {
+        clearTimeout(timer);
         reject(new Error('CDP closed'));
       }
       pending.clear();

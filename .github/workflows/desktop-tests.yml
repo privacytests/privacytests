@@ -111,7 +111,7 @@ jobs:
             cp "../${RESULT_FILE}.json" "../${RESULT_BROWSER}-private-${RESULT_REP}.json"
             cp "../${RESULT_FILE}.html" "../${RESULT_BROWSER}-private-${RESULT_REP}.html"
           fi
-        timeout-minutes: 90
+        timeout-minutes: 30
 
       - name: Upload results
         uses: actions/upload-artifact@v6
