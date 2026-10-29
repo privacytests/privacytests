@@ -1,7 +1,7 @@
 /* global postDataAndCarryOn */
 
 // Probes that should ideally stay stable when OS settings change (or be
-// farbled per first-party). The harness runs this page under settings A and B.
+// farbled per first-party). The harness runs this page under settings A/B/C.
 const settingsFingerprintTests = [
   {
     name: 'Time zone',
@@ -57,32 +57,32 @@ const settingsFingerprintTests = [
   {
     name: 'Screen width',
     description: 'Screen width leaked by the browser through the screen API.',
-    probe: () => String(screen.width)
+    probe: () => String(window.screen.width)
   },
   {
     name: 'Screen height',
     description: 'Screen height leaked by the browser through the screen API.',
-    probe: () => String(screen.height)
+    probe: () => String(window.screen.height)
   },
   {
     name: 'Available screen width',
-    description: 'Available screen width leaked by the browser through the screen API.',
-    probe: () => String(screen.availWidth)
+    description: 'screen.availWidth. Under settings A/B/C Dock is bottom / left / right (autohide off, varying tilesize), so width should change when side chrome is exposed.',
+    probe: () => String(window.screen.availWidth)
   },
   {
     name: 'Available screen height',
-    description: 'Available screen height leaked by the browser through the screen API.',
-    probe: () => String(screen.availHeight)
+    description: 'screen.availHeight. Under settings A/B/C Dock is bottom / left / right and the menu bar is shown vs autohide, so height should change when bottom or top chrome is exposed.',
+    probe: () => String(window.screen.availHeight)
   },
   {
     name: 'Available screen left',
-    description: 'Available screen left leaked by the browser through the screen API.',
-    probe: () => String(screen.availLeft)
+    description: 'screen.availLeft. Under settings A/B/C Dock is bottom / left / right, so left should be > 0 only when Dock is on the left (if side chrome is exposed).',
+    probe: () => String(window.screen.availLeft)
   },
   {
     name: 'Available screen top',
-    description: 'Available screen top leaked by the browser through the screen API.',
-    probe: () => String(screen.availTop)
+    description: 'screen.availTop. Under settings A/B/C the menu bar is shown vs autohide, so top should change when the menu-bar inset is exposed.',
+    probe: () => String(window.screen.availTop)
   },
   {
     name: 'User-installed font (DOM)',

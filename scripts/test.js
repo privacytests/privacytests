@@ -22,7 +22,6 @@ const { IOSBrowser } = require('./iOS.js');
 const WebSocket = require('ws');
 const cookieProxy = require('./cookie-proxy');
 const { sleepMs, parseBrowserKey } = require('./utils');
-const path = require('node:path');
 const { observeDomains, runDnsTests } = require('./dns-test.js');
 const systemNetworkSettings = require('./system-network-settings');
 const {
@@ -421,8 +420,7 @@ const runTrackingCookieTest = async (browserSession) => {
 
 // Run the first stage of privacy tests. Returns
 // a map of test types to test result maps. Such as
-// `
-  // { "device_fingerprinting" : { "Logical CPU cores" : { /* results */ }, ... },
+// { "device_fingerprinting" : { "Logical CPU cores" : { /* results */ }, ... },
 //   "misc" : { ... },
 //   "https" : { ... },
 //   "navigation" : { ... },
@@ -636,7 +634,7 @@ const runTests = async (
         testResultsSettingsFingerprint = await deadlinePromise(
           `${browserSpec.browser} settingsFingerprint`,
           runSettingsFingerprintTests(browserSession, { runPageTest }),
-          300000);
+          450000);
       }
     }
 

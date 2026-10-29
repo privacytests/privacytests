@@ -311,6 +311,60 @@ const setDockAutohide = (enabled) => {
   return actual;
 };
 
+// Dock icon size in points (16–128). Missing key ⇒ null (macOS default ~48).
+const getDockTileSize = () => {
+  try {
+    const n = parseInt(run('defaults read com.apple.dock tilesize').trim(), 10);
+    return Number.isFinite(n) ? n : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+const getDockMagnification = () => readBoolDefault('com.apple.dock', 'magnification');
+
+// Sets tilesize and forces magnification off so the inset is not pointer-dependent.
+// Pass null to delete the tilesize key (factory default).
+const setDockTileSize = (size) => {
+  if (size == null) {
+    try {
+      run('defaults delete com.apple.dock tilesize');
+    } catch (e) {
+      // Already absent.
+    }
+  } else {
+    const n = Number(size);
+    if (!Number.isFinite(n) || n < 16 || n > 128) {
+      throw new Error(`Invalid Dock tilesize: ${size} (expected 16–128)`);
+    }
+    run(`defaults write com.apple.dock tilesize -int ${Math.round(n)}`);
+  }
+  run('defaults write com.apple.dock magnification -bool false');
+  restartDock();
+  const actual = getDockTileSize();
+  if (size == null) {
+    if (actual != null) {
+      throw new Error(`Failed to clear Dock tilesize (now ${actual})`);
+    }
+  } else if (actual !== Math.round(Number(size))) {
+    throw new Error(`Failed to set Dock tilesize to ${size} (now ${actual})`);
+  }
+  if (getDockMagnification()) {
+    throw new Error('Failed to disable Dock magnification');
+  }
+  return actual;
+};
+
+const setDockMagnification = (enabled) => {
+  run(`defaults write com.apple.dock magnification -bool ${enabled ? 'true' : 'false'}`);
+  restartDock();
+  const actual = getDockMagnification();
+  if (actual !== Boolean(enabled)) {
+    throw new Error(`Failed to set Dock magnification to ${enabled} (now ${actual})`);
+  }
+  return actual;
+};
+
 // Desktop menu-bar autohide (_HIHideMenuBar). Missing key ⇒ shown (false).
 // Fullscreen visibility (AppleMenuBarVisibleInFullscreen) is left alone.
 const getHideMenuBar = () => readBoolDefault('-g', '_HIHideMenuBar');
@@ -378,6 +432,10 @@ module.exports = {
   setDockOrientation,
   getDockAutohide,
   setDockAutohide,
+  getDockTileSize,
+  setDockTileSize,
+  getDockMagnification,
+  setDockMagnification,
   getHideMenuBar,
   setHideMenuBar
 };
