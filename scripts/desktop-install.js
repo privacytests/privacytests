@@ -83,7 +83,6 @@ const resolveInstallSettings = (settings, nightly) => {
   if (!nightly) {
     return {
       appName: settings.name,
-      brewTap: settings.brewTap,
       brewCask: settings.brewCask,
       brewCaskInstalledName: settings.brewCaskInstalledName,
       preinstalled: settings.preinstalled,
@@ -96,7 +95,6 @@ const resolveInstallSettings = (settings, nightly) => {
   }
   return {
     appName: settings.nightlyName ?? settings.name,
-    brewTap: settings.nightlyBrewTap ?? settings.brewTap,
     brewCask: settings.nightlyBrewCask ?? settings.brewCask,
     brewCaskInstalledName: settings.nightlyBrewCaskInstalledName ?? settings.brewCaskInstalledName,
     preinstalled: settings.nightlyBrewCask ? false : settings.preinstalled,
@@ -212,9 +210,6 @@ const installFromBrewCask = (browserKey, installSettings) => {
   const needsRename = brewAppName !== installSettings.appName;
 
   console.log(`Installing ${browserKey} via brew cask ${installSettings.brewCask}`);
-  if (installSettings.brewTap) {
-    execSync(`brew tap ${installSettings.brewTap}`);
-  }
   if (needsRename && fs.existsSync(finalAppPath)) {
     execSync(`rm -rf "${brewAppPath}"`);
     execSync(`mv "${finalAppPath}" "${brewAppPath}"`);
