@@ -146,7 +146,7 @@ const enableInstalledExtension = async ({ userDataDir, extensionId }) => {
     const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
 
     let enabled = null;
-    const waitDeadline = Date.now() + 60000;
+    const waitDeadline = Date.now() + 120000;
     while (Date.now() < waitDeadline) {
       enabled = await evaluate(cdp, sessionId, getExtensionEnabled(id));
       if (enabled !== null) {
