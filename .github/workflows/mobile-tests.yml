@@ -119,8 +119,12 @@ jobs:
             failure.png
           if-no-files-found: warn
 
+  # Runs in an emulator on GitHub-hosted runners, not on the mobile device.
+  vanadium:
+    uses: ./.github/workflows/vanadium-emulator.yml
+
   render-results:
-    needs: mobile-tests
+    needs: [mobile-tests, vanadium]
     uses: ./.github/workflows/render-results.yml
     with:
       artifact-name: mobile-rendered-pages

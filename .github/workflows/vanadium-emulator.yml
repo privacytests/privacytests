@@ -1,0 +1,82 @@
+name: Vanadium emulator
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vanadium-emulator-${{ github.run_id }}
+  cancel-in-progress: false
+
+env:
+  CI: true
+  # capture-website pulls in puppeteer; CI doesn't generate previews, so skip its Chrome download.
+  PUPPETEER_SKIP_DOWNLOAD: true
+
+jobs:
+  vanadium:
+    # Linux runners have KVM, which the x86_64 emulator needs.
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # A Vanadium failure must not block the Android and iOS pages or trigger retries.
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        repetition: [1, 2, 3, 4, 5]
+    defaults:
+      run:
+        working-directory: scripts
+    env:
+      ADB_PATH: adb
+      RESULT_FILE: android-vanadium-${{ matrix.repetition }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: scripts/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Appium
+        run: |
+          npm install --global appium
+          appium driver install uiautomator2
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run tests in emulator
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          # Vanadium needs Android 14 or newer.
+          api-level: 34
+          arch: x86_64
+          target: default
+          ram-size: 4096M
+          disk-size: 6G
+          disable-animations: true
+          working-directory: scripts
+          script: bash ../infra/run-vanadium-emulator.sh
+
+      - name: Upload results
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: ${{ env.RESULT_FILE }}-results
+          path: |
+            ${{ env.RESULT_FILE }}.json
+            ${{ env.RESULT_FILE }}.html
+            failure.png
+            /tmp/appium.log
+          if-no-files-found: warn
