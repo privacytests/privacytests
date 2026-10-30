@@ -117,6 +117,8 @@ const browserInfo = {
   // Ships only with GrapheneOS, so the device under test must run it.
   vanadium: {
     releasePackageName: 'app.vanadium.browser',
+    // "No thanks" on the notification permission prompt.
+    startupClick: 'negative_button',
     urlBarClick: 'url_bar',
     urlBarClick2: 'search_box_text',
     urlBarKeys: 'url_bar'
