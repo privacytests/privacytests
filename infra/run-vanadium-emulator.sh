@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-APK_PATH="${RUNNER_TEMP:-/tmp}/vanadium.apk"
+APK_DIR="${RUNNER_TEMP:-/tmp}/vanadium"
 
 capture_failure() {
   adb exec-out screencap -p >../failure.png || true
@@ -12,6 +12,8 @@ capture_failure() {
 trap capture_failure ERR
 
 bash ../infra/ensure-appium.sh
-node fetch-vanadium-apk --out="$APK_PATH"
-adb install "$APK_PATH"
+node fetch-vanadium-apk --out-dir="$APK_DIR"
+adb install "$APK_DIR/app.vanadium.config.apk"
+adb install "$APK_DIR/app.vanadium.browser.apk"
+adb shell pm list packages app.vanadium
 node test --android --browser=vanadium --out="../${RESULT_FILE}.json"
