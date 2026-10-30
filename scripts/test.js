@@ -4,6 +4,7 @@
 //        `node test --browser=firefox-nightly --out=../firefox-nightly.json`
 //        `node test --browser=chrome --extension=<store id> --out=../chrome.json`
 //        `node test --browser=chrome --runner=macos-26 --out=../chrome.json`
+//        `node test --android --browser=vanadium --environment=emulator --environment-details="..."`
 
 // ## imports
 
@@ -584,7 +585,7 @@ const runTelemetryTests = async (browserSession) => {
 // Runs privacy tests for a single browser configuration.
 // Returns results in a JSON object.
 const runTests = async (
-  browserSpec, { debug, android, ios, categories, hurry, runner } = { debug: false, hurry: false }) => {
+  browserSpec, { debug, android, ios, categories, hurry, runner, environment, 'environment-details': environmentDetails } = { debug: false, hurry: false }) => {
   console.log(categories);
   const timeStarted = new Date().toISOString();
   cookieProxy.simulateTrackingCookies(mitmProxyPort, debug);
@@ -662,7 +663,9 @@ const runTests = async (
       os: os.type(),
       os_version: os.version(),
       // GitHub Actions runs-on label (or other host id), when passed via --runner.
-      ...(runner ? { runner: String(runner) } : {})
+      ...(runner ? { runner: String(runner) } : {}),
+      // Set when the run differs from the usual setup, so the results page can say so.
+      ...(environment ? { environment: String(environment), environmentDetails: String(environmentDetails) } : {})
     }];
     const timeStopped = new Date().toISOString();
     let platform;
