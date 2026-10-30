@@ -3,8 +3,6 @@ name: Vanadium emulator
 on:
   workflow_dispatch:
   workflow_call:
-  push:
-    branches: [vanadium-android]
 
 permissions:
   contents: read
