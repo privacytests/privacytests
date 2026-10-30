@@ -22,11 +22,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Same five OS×arch slots as desktop-tests.yml (ids 1–5 for render-multiple).
+        # Five repetitions (ids 1–5 for render-multiple). Slot 3 is a second
+        # macos-15-intel: macos-26-intel wedges Chrome during extension warm-up.
         repetitions:
           - { id: 1, runner: macos-26 }
           - { id: 2, runner: macos-15 }
-          - { id: 3, runner: macos-26-intel }
+          - { id: 3, runner: macos-15-intel }
           - { id: 4, runner: macos-15-intel }
           - { id: 5, runner: macos-26 }
         # Stock Chrome plus privacy extensions (Web Store ids).
