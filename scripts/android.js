@@ -114,7 +114,7 @@ const browserInfo = {
     urlBarClear: 'btn_clear_or_voice',
     contentElement: '//com.uc.webview.export.WebView'
   },
-  // Ships only with GrapheneOS, so the device under test must run it.
+  // Runs in an emulator on CI; see the Vanadium section of README.md.
   vanadium: {
     releasePackageName: 'app.vanadium.browser',
     // "No thanks" on the notification permission prompt.

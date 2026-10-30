@@ -2,6 +2,7 @@ name: Vanadium emulator
 
 on:
   workflow_dispatch:
+  workflow_call:
   push:
     branches: [vanadium-android]
 
@@ -9,8 +10,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: vanadium-emulator-${{ github.ref }}
-  cancel-in-progress: true
+  group: vanadium-emulator-${{ github.run_id }}
+  cancel-in-progress: false
 
 env:
   CI: true
@@ -22,12 +23,18 @@ jobs:
     # Linux runners have KVM, which the x86_64 emulator needs.
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    # A Vanadium failure must not block the Android and iOS pages or trigger retries.
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        repetition: [1, 2, 3, 4, 5]
     defaults:
       run:
         working-directory: scripts
     env:
       ADB_PATH: adb
-      RESULT_FILE: android-vanadium-1
+      RESULT_FILE: android-vanadium-${{ matrix.repetition }}
     steps:
       - uses: actions/checkout@v5
 

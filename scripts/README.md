@@ -29,7 +29,15 @@ brew install ideviceinstaller
 brew cask install android-platform-tools
 ```
 
-Vanadium only ships with GrapheneOS, so `--android --browser=vanadium` needs a GrapheneOS device.
+#### Vanadium
+
+Vanadium is the GrapheneOS browser. It does not need a phone: the `Vanadium emulator` workflow runs it in an Android emulator on GitHub-hosted runners, as part of the `Mobile tests` workflow.
+
+The workflow downloads the latest stable x86_64 APK from the GrapheneOS app repository, checks its SHA-256 hash, installs it, and runs `node test --android --browser=vanadium`. To start it by hand, open Actions > Vanadium emulator > Run workflow.
+
+The emulator runs stock Android 14, not GrapheneOS. Results show Vanadium without the GrapheneOS hardening, and fingerprinting results may differ from a real phone.
+
+To test on a real phone instead, install GrapheneOS, which includes Vanadium, and turn on USB debugging. Then run `node test --android --browser=vanadium` with Appium running.
 
 ### Finally
 

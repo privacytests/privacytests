@@ -4,7 +4,6 @@
 
 set -euo pipefail
 
-RESULT_FILE="${RESULT_FILE:-android-vanadium-1}"
 APK_PATH="${RUNNER_TEMP:-/tmp}/vanadium.apk"
 
 capture_failure() {
