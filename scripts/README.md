@@ -29,6 +29,8 @@ brew install ideviceinstaller
 brew cask install android-platform-tools
 ```
 
+Vanadium only ships with GrapheneOS, so `--android --browser=vanadium` needs a GrapheneOS device.
+
 ### Finally
 
 On all platforms:

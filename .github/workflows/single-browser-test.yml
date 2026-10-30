@@ -38,6 +38,7 @@ on:
           - tor
           - uc
           - ungoogled
+          - vanadium
           - vivaldi
           - whale
           - yandex
