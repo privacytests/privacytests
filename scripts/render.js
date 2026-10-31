@@ -460,10 +460,12 @@ const resultsKeys = [
   'readSameSession', 'readDifferentSession',
   'actual_value', 'desired_value', 'value', 'randomized', 'settings',
   'IsTorExit', 'cloudflareDoH', 'nextDoH', 'result',
-  'unsupported', 'upgraded', 'cookieFound', 'leak detected'
+  'unsupported', 'upgraded', 'cookieFound', 'leak detected',
+  'prompted'
 ];
 
 // Value-based device fingerprint probes:
+// - A modal permission prompt is not a usable fingerprint → pass.
 // - If every trial farbled across first parties (randomized), pass.
 // - Otherwise pass iff the (stable per-site) value matches across SKUs.
 // Legacy rows (e.g. fonts) already have `passed` and no `value`.
@@ -471,6 +473,11 @@ const scoreDeviceFingerprintingConsistency = (results) => {
   for (const test of results.all_tests || []) {
     for (const result of Object.values(test.testResults?.device_fingerprinting || {})) {
       if (!('value' in result)) {
+        continue;
+      }
+      // A modal permission prompt is not a usable fingerprint.
+      if ([].concat(result.prompted ?? false).some(Boolean)) {
+        result.passed = true;
         continue;
       }
       // Missing `randomized` (legacy rows) → treat as false.

@@ -508,11 +508,13 @@ const mergeDeviceFingerprintDomainResults = (perDomain) => {
     }
     const values = items.map(item => item.value);
     const randomized = new Set(values).size > 1;
+    const prompted = items.some(item => item.prompted);
     merged[name] = {
       description: items[0].description,
       // Keep all domain values when farbled so tooltips show the spread.
       value: randomized ? values : values[0],
       randomized,
+      ...(prompted ? { prompted: true } : {}),
       ...(items.some(item => item.error)
         ? { error: items.map(item => item.error).filter(Boolean).join('; ') }
         : {})
@@ -535,7 +537,14 @@ const runDeviceFingerprintTests = async (browserSession) => {
     for (const root of deviceFingerprintRoots) {
       const url = `${root}/deviceFingerprinting.html`;
       log('device fingerprint domain', { url });
-      perDomain.push(await runPageTest(browserSession, url));
+      const pageResult = await runPageTest(browserSession, url);
+      perDomain.push(pageResult);
+      // new AudioContext() can leave a modal microphone prompt up. The page
+      // reports that as a pass; kill the browser so the next load can run.
+      if (pageResult?.['AudioContext base latency']?.prompted) {
+        await browserSession.browser.kill(true);
+        await browserSession.browser.launch(false);
+      }
     }
     return { device_fingerprinting: mergeDeviceFingerprintDomainResults(perDomain) };
   } finally {

@@ -267,10 +267,11 @@ class DesktopBrowser {
     }
   }
 
-  // Close the browser.
-  async kill () {
+  // Close the browser. force skips AppleScript: a modal permission dialog
+  // does not answer quit, and that wait would burn minutes before pkill.
+  async kill (force = false) {
     console.log(`kill: ${this.browser} (${this._appName})`);
-    if (this._defaults.usePkill) {
+    if (force || this._defaults.usePkill) {
       await this._forceKill();
     } else {
       try {
