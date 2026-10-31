@@ -76,8 +76,7 @@ const deviceFingerprintTests = [
     }
   },
   // Math probes. Decimal String() round-trips finite floats (ULP diffs stay visible).
-  // sin/cos/tan: FingerprintJS / Tor samples — useful on non-Chromium; Chromium bundles these.
-  // tanh: since Chrome 148 uses host libm (OS fingerprint; may still match across mac SKUs).
+  // sin/tan: FingerprintJS / Tor samples — useful on non-Chromium; Chromium bundles these.
   {
     name: 'Math.tan(-1e300)',
     description: 'Checks if your browser leaks your CPU architecture via a built-in math function.',
@@ -89,14 +88,9 @@ const deviceFingerprintTests = [
     probe: () => String(Math.sin(-1e300))
   },
   {
-    name: 'Math.cos(10.000000000123)',
+    name: 'Math.tanh(0.123)',
     description: 'Checks if your browser leaks your CPU architecture via a built-in math function.',
-    probe: () => String(Math.cos(10.000000000123))
-  },
-  {
-    name: 'Math.tanh(0.8)',
-    description: 'Checks if your browser leaks your CPU architecture via a built-in math function.',
-    probe: () => String(Math.tanh(0.8))
+    probe: () => String(Math.tanh(0.123))
   },
   {
     // FingerprintJS OfflineAudioContext hash: triangle oscillator → dynamics compressor.
@@ -130,20 +124,6 @@ const deviceFingerprintTests = [
     }
   },
   {
-    name: 'AudioContext base latency',
-    description: 'AudioContext base latency in seconds leaked by the browser through the baseLatency API.',
-    probe: () => {
-      const Ctx = window.AudioContext || window.webkitAudioContext;
-      if (!Ctx) {
-        return String(undefined);
-      }
-      const ctx = new Ctx();
-      const latency = ctx.baseLatency;
-      ctx.close?.();
-      return String(latency);
-    }
-  },
-  {
     // Geometry-only Canvas2D sample (FingerprintJS renderGeometryImage): blend + winding,
     // no text/fonts. Returns a data URL so GPU/AA differences show up in the pixels.
     name: 'Canvas2D geometry',
@@ -171,8 +151,20 @@ const deviceFingerprintTests = [
       return canvas.toDataURL();
     }
   },
-  ...uaClientHintProbes
+  ...uaClientHintProbes,
+  {
+    name: 'AudioContext base latency',
+    description: 'AudioContext base latency in seconds leaked by the browser through the baseLatency API.',
+    // Measured in runTests. new AudioContext() can block the page thread on a
+    // modal microphone prompt, which is not a usable fingerprint.
+    probe: null
+  }
 ];
+
+const BASE_LATENCY_NAME = 'AudioContext base latency';
+// Long enough for a normal constructor, short enough that a modal prompt
+// does not hold the fingerprint page open.
+const AUDIO_CONTEXT_CONSTRUCTOR_TIMEOUT_MS = 2000;
 
 const runProbe = async ({ name, description, probe }) => {
   let value;
@@ -190,23 +182,136 @@ const runProbe = async ({ name, description, probe }) => {
   };
 };
 
+const recordResult = (results, resultsDiv, name, result) => {
+  results[name] = result;
+  if (!resultsDiv) {
+    return;
+  }
+  const div = document.createElement('div');
+  div.innerText = result.error
+    ? `ERROR: ${name} [${result.error}]`
+    : `${name}: ${JSON.stringify(result.value)}`;
+  resultsDiv.appendChild(div);
+};
+
+// new AudioContext() runs on the page thread. A microphone dialog blocks that
+// thread, so the timeout has to live in a worker, which posts the pass itself.
+const startBaseLatencyWatchdog = (results, description) => {
+  const sessionId = new URLSearchParams(window.location.search).get('sessionId');
+  const isLocal = window.location.host.endsWith('.example');
+  const postURL = isLocal ? 'https://results.pto2.example/post' : 'https://results.privacytests.org/post';
+  const payload = {
+    sessionId,
+    url: window.location.href,
+    category: 'device_fingerprinting',
+    data: {
+      ...results,
+      [BASE_LATENCY_NAME]: {
+        description,
+        value: 'prompt',
+        prompted: true
+      }
+    }
+  };
+  const source = `
+    let posted = false;
+    let timer;
+    self.onmessage = (event) => {
+      if (event.data === 'start') {
+        timer = setTimeout(() => {
+          posted = true;
+          fetch(${JSON.stringify(postURL)}, {
+            method: 'POST',
+            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+            body: JSON.stringify(${JSON.stringify(payload)})
+          }).then(() => self.postMessage('posted'), () => self.postMessage('posted'));
+        }, ${AUDIO_CONTEXT_CONSTRUCTOR_TIMEOUT_MS});
+      } else if (event.data === 'cancel') {
+        clearTimeout(timer);
+        self.postMessage(posted ? 'posted' : 'cancelled');
+      }
+    };
+  `;
+  const worker = new Worker(URL.createObjectURL(new Blob([source], { type: 'text/javascript' })));
+  worker.postMessage('start');
+  return {
+    cancel () {
+      return new Promise((resolve) => {
+        const giveUp = setTimeout(() => {
+          worker.terminate();
+          resolve(false);
+        }, 1000);
+        const onMessage = (event) => {
+          clearTimeout(giveUp);
+          worker.removeEventListener('message', onMessage);
+          worker.terminate();
+          resolve(event.data === 'posted');
+        };
+        worker.addEventListener('message', onMessage);
+        worker.postMessage('cancel');
+      });
+    }
+  };
+};
+
+const runBaseLatencyProbe = async (results, description, resultsDiv) => {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) {
+    recordResult(results, resultsDiv, BASE_LATENCY_NAME, {
+      description,
+      value: String(undefined)
+    });
+    return false;
+  }
+  let watchdog;
+  try {
+    watchdog = startBaseLatencyWatchdog(results, description);
+  } catch (e) {
+    watchdog = { cancel: async () => false };
+  }
+  let latency;
+  try {
+    const ctx = new Ctx();
+    latency = String(ctx.baseLatency);
+    ctx.close?.();
+  } catch (e) {
+    if (await watchdog.cancel()) {
+      return true;
+    }
+    recordResult(results, resultsDiv, BASE_LATENCY_NAME, {
+      description,
+      value: undefined,
+      error: e.toString()
+    });
+    return false;
+  }
+  if (await watchdog.cancel()) {
+    return true;
+  }
+  recordResult(results, resultsDiv, BASE_LATENCY_NAME, {
+    description,
+    value: latency
+  });
+  return false;
+};
+
 const runTests = async () => {
   const results = {};
   const resultsDiv = document.getElementById('test_results');
   for (const test of deviceFingerprintTests) {
+    if (test.name === BASE_LATENCY_NAME) {
+      const postedByWatchdog = await runBaseLatencyProbe(results, test.description, resultsDiv);
+      if (postedByWatchdog) {
+        return;
+      }
+      continue;
+    }
     const result = await runProbe(test);
-    results[test.name] = {
+    recordResult(results, resultsDiv, test.name, {
       description: result.description,
       value: result.value,
       ...(result.error ? { error: result.error } : {})
-    };
-    if (resultsDiv) {
-      const div = document.createElement('div');
-      div.innerText = result.error
-        ? `ERROR: ${test.name} [${result.error}]`
-        : `${test.name}: ${JSON.stringify(result.value)}`;
-      resultsDiv.appendChild(div);
-    }
+    });
   }
   document.body.setAttribute('data-test-results', JSON.stringify(results));
   await postDataAndCarryOn(results, 'device_fingerprinting');
