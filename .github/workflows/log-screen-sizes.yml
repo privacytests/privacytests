@@ -1,0 +1,36 @@
+name: Log screen sizes
+
+on:
+  workflow_dispatch:
+
+jobs:
+  screen-sizes:
+    strategy:
+      fail-fast: false
+      matrix:
+        # Same OS×arch runners as desktop-tests (unique labels only).
+        runner:
+          - macos-26
+          - macos-15
+          - macos-26-intel
+          - macos-15-intel
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Runner info
+        run: |
+          echo "runner=${{ matrix.runner }}"
+          echo "arch=$(uname -m)"
+          sw_vers
+
+      - name: Current screen size
+        working-directory: scripts
+        run: swift screen-size/main.swift current
+
+      - name: Available screen sizes
+        working-directory: scripts
+        run: swift screen-size/main.swift
+
+      - name: system_profiler SPDisplaysDataType
+        run: system_profiler SPDisplaysDataType
