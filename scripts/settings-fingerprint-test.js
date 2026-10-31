@@ -10,7 +10,7 @@ const settingsRoots = [
   'https://test-pages.privacytests3.org'
 ];
 
-const screenSizeA = { width: 1920, height: 1080 };
+const screenSizeA = { width: 1024, height: 768 };
 
 // A/B pairs: distinct time zones, second languages, and a11y display toggles
 // so we can see whether browsers expose those setting changes.
