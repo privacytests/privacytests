@@ -109,12 +109,22 @@ const resolveManifestString = (unpacked, value) => {
   return readLocaleMessage(unpacked, match[1]) || value;
 };
 
+// Store titles that don't shorten cleanly via the separator heuristic below.
+const SHORT_DISPLAY_NAME_OVERRIDES = {
+  'DuckDuckGo Search & Tracker Protection': 'DuckDuckGo'
+};
+
 // Prefer an explicit short_name; otherwise use the store name and drop a
 // long subtitle after " - " / " – " / ":".
 const shortDisplayName = (name, shortName) => {
   const preferred = (shortName || name || '').trim();
   if (!preferred) {
     return 'Extension';
+  }
+  const override = SHORT_DISPLAY_NAME_OVERRIDES[preferred] ||
+    SHORT_DISPLAY_NAME_OVERRIDES[(name || '').trim()];
+  if (override) {
+    return override;
   }
   const cut = preferred.split(/\s+[–—:|-]\s+/)[0].trim();
   return cut || preferred;
