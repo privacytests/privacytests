@@ -532,16 +532,21 @@ const runDeviceFingerprintTests = async (browserSession) => {
     domains: deviceFingerprintRoots.length
   });
   await browserSession.browser.launch(true);
+  const relaunchBetweenDomains =
+    !!browserSession.browser._defaults?.relaunchBetweenFingerprintingDomains;
   try {
     const perDomain = [];
-    for (const root of deviceFingerprintRoots) {
+    for (let i = 0; i < deviceFingerprintRoots.length; i++) {
+      const root = deviceFingerprintRoots[i];
       const url = `${root}/deviceFingerprinting.html`;
       log('device fingerprint domain', { url });
       const pageResult = await runPageTest(browserSession, url);
       perDomain.push(pageResult);
+      const lastDomain = i === deviceFingerprintRoots.length - 1;
       // new AudioContext() can leave a modal microphone prompt up. The page
       // reports that as a pass; kill the browser so the next load can run.
-      if (pageResult?.['AudioContext base latency']?.prompted) {
+      const prompted = pageResult?.['AudioContext base latency']?.prompted;
+      if (!lastDomain && (relaunchBetweenDomains || prompted)) {
         await browserSession.browser.kill(true);
         await browserSession.browser.launch(false);
       }

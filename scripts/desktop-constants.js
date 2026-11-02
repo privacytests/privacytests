@@ -53,6 +53,8 @@ const macOSdefaultBrowserSettings = {
     privateFlag: 'private-window',
     basedOn: 'firefox',
     useOpen: true,
+    // open -a + leftover mic modal/blank window can block the next FP domain.
+    relaunchBetweenFingerprintingDomains: true,
     env: { MOZ_DISABLE_AUTO_SAFE_MODE: '1' },
     githubRelease: {
       apiUrl: 'https://librewolf.dev/api/v1/repos/librewolf/bsys6/releases/latest',
@@ -65,6 +67,7 @@ const macOSdefaultBrowserSettings = {
     binaryName: 'mullvadbrowser',
     basedOn: 'firefox',
     useOpen: true,
+    relaunchBetweenFingerprintingDomains: true,
     env: { MOZ_DISABLE_AUTO_SAFE_MODE: '1' },
     githubRelease: {
       repo: 'mullvad/mullvad-browser',
@@ -101,6 +104,7 @@ const macOSdefaultBrowserSettings = {
     nightlyName: 'Tor Browser',
     binaryName: 'firefox',
     useOpen: true,
+    relaunchBetweenFingerprintingDomains: true,
     basedOn: 'firefox',
     env: { MOZ_DISABLE_AUTO_SAFE_MODE: '1', MOZ_CRASHREPORTER_DISABLE: '1' },
     postLaunchDelay: 10000,
