@@ -231,6 +231,10 @@ class DesktopBrowser {
       userDataDir: this._profilePath,
       extensionId: this._extensionId
     });
+    // Let the service worker finish startup work
+    // before tests run; slow CI VMs otherwise race the first cookie probes.
+    console.log('acknowledgeExtension: settling 10s after enable');
+    await sleepMs(10000);
     this._extensionAcknowledged = true;
   }
 
