@@ -22,7 +22,6 @@ const settingsFingerprintConfigs = [
   {
     id: 'A',
     timezone: 'Europe/Paris',
-    languages: ['es', 'fr'],
     // AZERTY vs QWERTZ — distinguishable via Keyboard Map API.
     keyboardLayout: 'French',
     // Absent first, then install — avoids stale font-cache after deletion.
@@ -39,7 +38,6 @@ const settingsFingerprintConfigs = [
   {
     id: 'B',
     timezone: 'Europe/Berlin',
-    languages: ['es', 'de'],
     keyboardLayout: 'German',
     testFontInstalled: true,
     dockOrientation: 'right',
@@ -56,11 +54,11 @@ const log = (...args) => {
 };
 
 const settingLabel = ({
-  timezone, languages, keyboardLayout, testFontInstalled,
+  timezone, keyboardLayout, testFontInstalled,
   dockOrientation, dockTileSize: tileSize, hideMenuBar, reducedMotion,
   reducedTransparency, increaseContrast
 }) =>
-  `${timezone}; languages=${languages.join(',')}; keyboardLayout=${keyboardLayout}; ` +
+  `${timezone}; keyboardLayout=${keyboardLayout}; ` +
   `testFontInstalled=${testFontInstalled}; dock=${dockOrientation}; ` +
   `dockTileSize=${tileSize}; hideMenuBar=${hideMenuBar}; ` +
   `reducedMotion=${reducedMotion}; reducedTransparency=${reducedTransparency}; ` +
@@ -69,7 +67,6 @@ const settingLabel = ({
 // Each probe only cares about one A/B dimension — tooltips should show that alone.
 const relevantSettingForProbe = {
   'Time zone': ({ timezone }) => timezone,
-  'Preferred languages': ({ languages }) => languages.join(','),
   'Reduced motion preference': ({ reducedMotion }) => String(reducedMotion),
   'Reduced transparency preference': ({ reducedTransparency }) => String(reducedTransparency),
   'Display contrast preference': ({ increaseContrast }) => String(increaseContrast),
@@ -92,7 +89,6 @@ const saveOriginalSettings = () => {
   }
   originalSettings = {
     timezone: systemSettings.getTimezone(),
-    languages: systemSettings.getLanguages(),
     keyboardLayout: systemSettings.getKeyboardLayout(),
     testFontInstalled: systemSettings.getTestFontInstalled(),
     dockOrientation: systemSettings.getDockOrientation(),
@@ -114,9 +110,6 @@ const restoreOriginalSettings = () => {
   try {
     log('settings fingerprinting: restoring', originalSettings);
     systemSettings.setTimezone(originalSettings.timezone);
-    if (originalSettings.languages.length > 0) {
-      systemSettings.setLanguages(originalSettings.languages);
-    }
     if (originalSettings.keyboardLayout) {
       systemSettings.setKeyboardLayout(originalSettings.keyboardLayout);
     }
@@ -200,7 +193,6 @@ const mergeSettingsFingerprintResults = (perSetting) => {
 
 const applyConfig = (applied) => {
   systemSettings.setTimezone(applied.timezone);
-  systemSettings.setLanguages(applied.languages);
   systemSettings.setKeyboardLayout(applied.keyboardLayout);
   systemSettings.setTestFontInstalled(applied.testFontInstalled);
   systemSettings.setDockOrientation(applied.dockOrientation);

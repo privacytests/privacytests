@@ -10,11 +10,6 @@ const settingsFingerprintTests = [
     probe: () => String(Intl.DateTimeFormat().resolvedOptions().timeZone)
   },
   {
-    name: 'Preferred languages',
-    description: 'Your system language list leaked by the browser through the navigator.languages API.',
-    probe: () => JSON.stringify(Array.from(navigator.languages || []))
-  },
-  {
     name: 'Reduced motion preference',
     description: 'Your browser may leak your system reduced motion preference.',
     probe: () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
