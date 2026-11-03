@@ -29,6 +29,11 @@ const {
   saveOriginalSettings,
   restoreOriginalSettings
 } = require('./settings-fingerprint-test');
+const {
+  runScreenFingerprintTests,
+  saveOriginalScreenSize,
+  restoreOriginalScreenSize
+} = require('./screen-fingerprint-test');
 const { macOSdefaultBrowserSettings } = require('./desktop-constants');
 const { validateExtensionId } = require('./chrome-extension');
 
@@ -623,6 +628,7 @@ const runTests = async (
     let testResultsStage2 = null;
     let testResultsStage3 = null;
     let testResultsDeviceFingerprint = null;
+    let testResultsScreenFingerprint = null;
     let testResultsSettingsFingerprint = null;
     if (!android && !ios) {
       await DesktopBrowser.setGlobalProxyUsageEnabled(true, mitmProxyPort);
@@ -644,6 +650,12 @@ const runTests = async (
           runDeviceFingerprintTests(browserSession),
           240000);
       }
+      if (categories.includes('screenFingerprint')) {
+        testResultsScreenFingerprint = await deadlinePromise(
+          `${browserSpec.browser} screenFingerprint`,
+          runScreenFingerprintTests(browserSession, { runPageTest }),
+          240000);
+      }
       if (categories.includes('settingsFingerprint')) {
         testResultsSettingsFingerprint = await deadlinePromise(
           `${browserSpec.browser} settingsFingerprint`,
@@ -659,9 +671,14 @@ const runTests = async (
         ...testResultsDeviceFingerprint.device_fingerprinting
       };
     }
-    if (testResultsSettingsFingerprint?.settings_fingerprinting) {
-      testResults.settings_fingerprinting =
-        testResultsSettingsFingerprint.settings_fingerprinting;
+    // Screen width/height come from a separate harness but render under
+    // settings_fingerprinting (same category as before the split).
+    if (testResultsSettingsFingerprint?.settings_fingerprinting ||
+        testResultsScreenFingerprint?.screen_fingerprinting) {
+      testResults.settings_fingerprinting = {
+        ...testResultsScreenFingerprint?.screen_fingerprinting,
+        ...testResultsSettingsFingerprint?.settings_fingerprinting
+      };
     }
     const { browser, incognito, tor, nightly, extension } = browserSpec;
     const allTests = [{
@@ -784,9 +801,10 @@ const readConfig = (commandLineData) => {
       'session', 'main', 'misc', 'https', 'trackingCookies'
     ];
     // DNS leak tests need monitor-dns.js on the Mac; not used for mobile yet.
-    // Device / settings fingerprint probes use a fresh desktop browser instance.
+    // Device / screen / settings fingerprint probes use a fresh desktop browser.
     if (!config.android && !config.ios) {
-      config.categories.push('dns', 'deviceFingerprint', 'settingsFingerprint');
+      config.categories.push(
+        'dns', 'deviceFingerprint', 'screenFingerprint', 'settingsFingerprint');
     }
   }
   if (config.skip) {
@@ -830,6 +848,7 @@ const cleanupAndShutdown = async (exitCode) => {
         const preferredNetworkService = systemNetworkSettings.getPreferredNetworkService();
         systemNetworkSettings.setDNS(preferredNetworkService, originalDnsIps);
       }
+      restoreOriginalScreenSize();
       restoreOriginalSettings();
       cleanupRan = true;
     } catch (e) {
@@ -887,6 +906,7 @@ const main = async () => {
       await DesktopBrowser.setGlobalProxyUsageEnabled(false);
       const preferredNetworkService = systemNetworkSettings.getPreferredNetworkService();
       originalDnsIps = systemNetworkSettings.getDNS(preferredNetworkService);
+      saveOriginalScreenSize();
       saveOriginalSettings();
       const activeVpnCount = await DesktopBrowser.countActiveVpns();
       if (activeVpnCount > 0) {

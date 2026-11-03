@@ -224,7 +224,8 @@ const tooltipFunctions = {};
 tooltipFunctions.device_fingerprinting = deviceFingerprintingItem =>
   tooltipFunctions.simple(deviceFingerprintingItem);
 
-// Settings fingerprinting: values collected under OS settings A vs B.
+// Settings fingerprinting: values collected under OS settings A vs B
+// (includes Screen width/height from the separate screen A/B harness).
 tooltipFunctions.settings_fingerprinting = settingsItem =>
   tooltipFunctions.simple(settingsItem);
 

@@ -1,5 +1,6 @@
 // Settings fingerprinting: change OS settings A → B, probe in a fresh browser
 // on three first-party domains each time, then score stability vs farbling.
+// Screen size is tested separately (see screen-fingerprint-test.js).
 const os = require('os');
 const systemSettings = require('./system-settings');
 const { sleepMs } = require('./utils');
@@ -10,14 +11,11 @@ const settingsRoots = [
   'https://test-pages.privacytests3.org'
 ];
 
-const screenSizeA = { width: 1024, height: 768 };
-
-// Small fixed Dock icon size for both A/B so orientation changes shrink
-// usable desktop less (avoids large window-size jumps on relaunch).
+// Small fixed Dock icon size so orientation changes shrink usable desktop
+// less (avoids large window-size jumps on relaunch).
 const dockTileSize = 16;
 
-// A/B pairs: distinct time zones, second languages, and a11y display toggles
-// so we can see whether browsers expose those setting changes.
+// A/B: dock/menu chrome and misc OS settings. Display resolution stays fixed.
 const settingsFingerprintConfigs = [
   {
     id: 'A',
@@ -25,7 +23,6 @@ const settingsFingerprintConfigs = [
     languages: ['es', 'fr'],
     // AZERTY vs QWERTZ — distinguishable via Keyboard Map API.
     keyboardLayout: 'French',
-    screenSize: screenSizeA,
     // Absent first, then install — avoids stale font-cache after deletion.
     testFontInstalled: false,
     // Dock bottom vs left (autohide forced off) for Available screen * probes.
@@ -42,8 +39,6 @@ const settingsFingerprintConfigs = [
     timezone: 'Europe/Berlin',
     languages: ['es', 'de'],
     keyboardLayout: 'German',
-    // Filled in at run time: next enumerated mode smaller than A in both dims.
-    screenSize: null,
     testFontInstalled: true,
     dockOrientation: 'left',
     dockTileSize,
@@ -59,12 +54,11 @@ const log = (...args) => {
 };
 
 const settingLabel = ({
-  timezone, languages, keyboardLayout, screenSize, testFontInstalled,
+  timezone, languages, keyboardLayout, testFontInstalled,
   dockOrientation, dockTileSize: tileSize, hideMenuBar, reducedMotion,
   reducedTransparency, increaseContrast
 }) =>
   `${timezone}; languages=${languages.join(',')}; keyboardLayout=${keyboardLayout}; ` +
-  (screenSize ? `screen=${screenSize.width}x${screenSize.height}; ` : '') +
   `testFontInstalled=${testFontInstalled}; dock=${dockOrientation}; ` +
   `dockTileSize=${tileSize}; hideMenuBar=${hideMenuBar}; ` +
   `reducedMotion=${reducedMotion}; reducedTransparency=${reducedTransparency}; ` +
@@ -78,10 +72,6 @@ const relevantSettingForProbe = {
   'Reduced transparency preference': ({ reducedTransparency }) => String(reducedTransparency),
   'Display contrast preference': ({ increaseContrast }) => String(increaseContrast),
   'Keyboard layout': ({ keyboardLayout }) => keyboardLayout,
-  'Screen width': ({ screenSize }) =>
-    (screenSize ? `${screenSize.width}x${screenSize.height}` : null),
-  'Screen height': ({ screenSize }) =>
-    (screenSize ? `${screenSize.width}x${screenSize.height}` : null),
   'Available screen width': ({ dockOrientation }) => dockOrientation,
   'Available screen height': ({ dockOrientation }) => dockOrientation,
   'Available screen left': ({ dockOrientation }) => dockOrientation,
@@ -90,32 +80,8 @@ const relevantSettingForProbe = {
   'User-installed font (canvas)': ({ testFontInstalled }) => String(testFontInstalled)
 };
 
-const screenSizeKey = ({ width, height }) => `${width}x${height}`;
-
-// Resolve B's screen size from available modes; return false if A/B can't both run.
-const prepareScreenSizes = () => {
-  const available = systemSettings.listScreenSizes();
-  const availableKeys = new Set(available.map(screenSizeKey));
-  log('settings fingerprinting: available display sizes', [...availableKeys]);
-  if (available.length < 2 || !availableKeys.has(screenSizeKey(screenSizeA))) {
-    return false;
-  }
-  let screenSizeB;
-  try {
-    screenSizeB = systemSettings.getNextSmallerScreenSize(screenSizeA);
-  } catch (e) {
-    log('settings fingerprinting: no next-smaller mode than', screenSizeKey(screenSizeA), e.message || e);
-    return false;
-  }
-  const configB = settingsFingerprintConfigs.find(({ id }) => id === 'B');
-  configB.screenSize = screenSizeB;
-  log('settings fingerprinting: screen A/B', screenSizeKey(screenSizeA), '→', screenSizeKey(screenSizeB));
-  return true;
-};
-
 // Snapshot of host settings before A/B mutation (also used by test.js cleanup).
 let originalSettings = null;
-let varyScreenSize = false;
 
 const saveOriginalSettings = () => {
   if (os.platform() !== 'darwin') {
@@ -125,7 +91,6 @@ const saveOriginalSettings = () => {
     timezone: systemSettings.getTimezone(),
     languages: systemSettings.getLanguages(),
     keyboardLayout: systemSettings.getKeyboardLayout(),
-    screenSize: systemSettings.getScreenSize(),
     testFontInstalled: systemSettings.getTestFontInstalled(),
     dockOrientation: systemSettings.getDockOrientation(),
     dockAutohide: systemSettings.getDockAutohide(),
@@ -151,9 +116,6 @@ const restoreOriginalSettings = () => {
     }
     if (originalSettings.keyboardLayout) {
       systemSettings.setKeyboardLayout(originalSettings.keyboardLayout);
-    }
-    if (varyScreenSize && originalSettings.screenSize) {
-      systemSettings.setScreenSize(originalSettings.screenSize);
     }
     systemSettings.setTestFontInstalled(originalSettings.testFontInstalled);
     systemSettings.setDockOrientation(originalSettings.dockOrientation);
@@ -228,6 +190,19 @@ const mergeSettingsFingerprintResults = (perSetting) => {
   return merged;
 };
 
+const applyConfig = (applied) => {
+  systemSettings.setTimezone(applied.timezone);
+  systemSettings.setLanguages(applied.languages);
+  systemSettings.setKeyboardLayout(applied.keyboardLayout);
+  systemSettings.setTestFontInstalled(applied.testFontInstalled);
+  systemSettings.setDockOrientation(applied.dockOrientation);
+  systemSettings.setDockTileSize(applied.dockTileSize);
+  systemSettings.setHideMenuBar(applied.hideMenuBar);
+  systemSettings.setReducedMotion(applied.reducedMotion);
+  systemSettings.setReducedTransparency(applied.reducedTransparency);
+  systemSettings.setIncreaseContrast(applied.increaseContrast);
+};
+
 // Apply each OS settings config, launch a fresh browser, run the three-domain
 // settings fingerprint page, then restore prior OS settings.
 // `runPageTest` is injected from test.js (websocket/session helper).
@@ -239,28 +214,11 @@ const runSettingsFingerprintTests = async (browserSession, { runPageTest }) => {
   if (!originalSettings) {
     saveOriginalSettings();
   }
-  varyScreenSize = prepareScreenSizes();
-  if (!varyScreenSize) {
-    log('settings fingerprinting: skipping screen size A/B (need 1920x1080 plus a smaller mode)');
-  }
   try {
     const perSetting = [];
     for (const config of settingsFingerprintConfigs) {
-      const applied = varyScreenSize ? config : { ...config, screenSize: null };
-      log('settings fingerprinting: applying', applied);
-      systemSettings.setTimezone(applied.timezone);
-      systemSettings.setLanguages(applied.languages);
-      systemSettings.setKeyboardLayout(applied.keyboardLayout);
-      if (varyScreenSize) {
-        systemSettings.setScreenSize(applied.screenSize);
-      }
-      systemSettings.setTestFontInstalled(applied.testFontInstalled);
-      systemSettings.setDockOrientation(applied.dockOrientation);
-      systemSettings.setDockTileSize(applied.dockTileSize);
-      systemSettings.setHideMenuBar(applied.hideMenuBar);
-      systemSettings.setReducedMotion(applied.reducedMotion);
-      systemSettings.setReducedTransparency(applied.reducedTransparency);
-      systemSettings.setIncreaseContrast(applied.increaseContrast);
+      log('settings fingerprinting: applying', config);
+      applyConfig(config);
       // Give the OS / browsers a moment to notice the new settings.
       await sleepMs(2000);
       await browserSession.browser.launch(true);
@@ -269,27 +227,20 @@ const runSettingsFingerprintTests = async (browserSession, { runPageTest }) => {
         for (const root of settingsRoots) {
           const url = `${root}/settingsFingerprinting.html`;
           log('settings fingerprint domain', {
-            setting: settingLabel(applied),
+            setting: settingLabel(config),
             url
           });
           perDomain.push(await runPageTest(browserSession, url));
         }
         perSetting.push({
-          config: applied,
+          config,
           results: mergeDomainResults(perDomain)
         });
       } finally {
         await browserSession.browser.kill();
       }
     }
-    const merged = mergeSettingsFingerprintResults(perSetting);
-    // Don't score screen probes when we never varied the display — identical
-    // A/B values would look like a false privacy pass.
-    if (!varyScreenSize) {
-      delete merged['Screen width'];
-      delete merged['Screen height'];
-    }
-    return { settings_fingerprinting: merged };
+    return { settings_fingerprinting: mergeSettingsFingerprintResults(perSetting) };
   } finally {
     restoreOriginalSettings();
   }

@@ -1,7 +1,8 @@
 /* global postDataAndCarryOn */
 
 // Probes that should ideally stay stable when OS settings change (or be
-// farbled per first-party). The harness runs this page under settings A/B/C.
+// farbled per first-party). The harness runs this page under settings A/B
+// (dock/menu + misc). Screen size is probed separately.
 const settingsFingerprintTests = [
   {
     name: 'Time zone',
@@ -53,16 +54,6 @@ const settingsFingerprintTests = [
       }
       return JSON.stringify(sample);
     }
-  },
-  {
-    name: 'Screen width',
-    description: 'Screen width leaked by the browser through the screen API.',
-    probe: () => String(window.screen.width)
-  },
-  {
-    name: 'Screen height',
-    description: 'Screen height leaked by the browser through the screen API.',
-    probe: () => String(window.screen.height)
   },
   {
     name: 'Available screen width',
