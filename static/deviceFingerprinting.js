@@ -1,4 +1,4 @@
-/* global postDataAndCarryOn */
+/* global postDataAndCarryOn, Worker */
 
 // High-entropy UA Client Hints (Chromium-family). One getHighEntropyValues() call
 // is shared across probes. Values stringify to `"undefined"` when UA-CH is missing.

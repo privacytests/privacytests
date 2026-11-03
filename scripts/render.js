@@ -498,7 +498,6 @@ const scoreDeviceFingerprintingConsistency = (results) => {
 // for a simpler rendering.
 const aggregateRepeatedTrials = (results) => {
   const aggregatedResults = new Map();
-  let testIndex = 0;
   for (const test of results.all_tests) {
     if (test && test.testResults) {
       const key = resultsToDescription(test);
@@ -509,17 +508,25 @@ const aggregateRepeatedTrials = (results) => {
           for (const subcategory of ['supercookies', 'session_1p', 'session_3p', 'device_fingerprinting',
             'settings_fingerprinting', 'https', 'misc', 'navigation',
             'query', 'trackers', 'tracker_cookies', 'dns']) {
+            // Some rounds omit optional probes (e.g. Screen width/height when
+            // display A/B wasn't available). Keep measurements from rounds that
+            // ran them; don't require every round to share the same key set.
+            if (!testResultsForRound[subcategory]) {
+              testResultsForRound[subcategory] = {};
+            }
             const someTests = testResultsForRound[subcategory];
-            for (const testName in test.testResults[subcategory]) {
-              for (const value in test.testResults[subcategory][testName]) {
+            const roundTests = test.testResults[subcategory] || {};
+            for (const testName in roundTests) {
+              if (!someTests[testName]) {
+                someTests[testName] = deepCopy(roundTests[testName]);
+                continue;
+              }
+              for (const value in roundTests[testName]) {
                 if (resultsKeys.includes(value)) {
-                  if (!someTests[testName]) {
-                    throw new Error(`Can't find the "${testName}" ${subcategory} test in testing round ${testIndex}`);
-                  }
                   if (!Array.isArray(someTests[testName][value])) {
                     someTests[testName][value] = [someTests[testName][value]];
                   }
-                  someTests[testName][value].push(test.testResults[subcategory][testName][value]);
+                  someTests[testName][value].push(roundTests[testName][value]);
                 }
               }
             }
@@ -529,7 +536,6 @@ const aggregateRepeatedTrials = (results) => {
         aggregatedResults.set(key, deepCopy(test));
       }
     }
-    ++testIndex;
   }
   const resultsCopy = deepCopy(results);
   resultsCopy.all_tests = [...aggregatedResults.values()];
