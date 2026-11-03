@@ -11,11 +11,13 @@ const settingsRoots = [
   'https://test-pages.privacytests3.org'
 ];
 
-// Small fixed Dock icon size so orientation changes shrink usable desktop
-// less (avoids large window-size jumps on relaunch).
-const dockTileSize = 16;
+// Dock stays on the sides so it doesn't affect availHeight. Small on the left,
+// larger on the right so availWidth / availLeft move clearly.
+const dockTileSizeLeft = 16;
+const dockTileSizeRight = 32;
 
-// A/B: dock/menu chrome and misc OS settings. Display resolution stays fixed.
+// A/B: side dock + menu bar chrome, and misc OS settings.
+// Display resolution stays fixed (see screen-fingerprint-test.js).
 const settingsFingerprintConfigs = [
   {
     id: 'A',
@@ -25,10 +27,10 @@ const settingsFingerprintConfigs = [
     keyboardLayout: 'French',
     // Absent first, then install — avoids stale font-cache after deletion.
     testFontInstalled: false,
-    // Dock bottom vs left (autohide forced off) for Available screen * probes.
-    dockOrientation: 'bottom',
-    dockTileSize,
-    // Menu bar shown vs autohide (_HIHideMenuBar) for Available screen top.
+    // Side dock (autohide forced off) for Available screen width / left.
+    dockOrientation: 'left',
+    dockTileSize: dockTileSizeLeft,
+    // Menu bar shown vs autohide (_HIHideMenuBar) for Available screen height / top.
     hideMenuBar: false,
     reducedMotion: true,
     reducedTransparency: true,
@@ -40,8 +42,8 @@ const settingsFingerprintConfigs = [
     languages: ['es', 'de'],
     keyboardLayout: 'German',
     testFontInstalled: true,
-    dockOrientation: 'left',
-    dockTileSize,
+    dockOrientation: 'right',
+    dockTileSize: dockTileSizeRight,
     hideMenuBar: true,
     reducedMotion: false,
     reducedTransparency: false,
@@ -72,8 +74,9 @@ const relevantSettingForProbe = {
   'Reduced transparency preference': ({ reducedTransparency }) => String(reducedTransparency),
   'Display contrast preference': ({ increaseContrast }) => String(increaseContrast),
   'Keyboard layout': ({ keyboardLayout }) => keyboardLayout,
-  'Available screen width': ({ dockOrientation }) => dockOrientation,
-  'Available screen height': ({ dockOrientation }) => dockOrientation,
+  'Available screen width': ({ dockOrientation, dockTileSize: tileSize }) =>
+    `${dockOrientation}@${tileSize}`,
+  'Available screen height': ({ hideMenuBar }) => String(hideMenuBar),
   'Available screen left': ({ dockOrientation }) => dockOrientation,
   'Available screen top': ({ hideMenuBar }) => String(hideMenuBar),
   'User-installed font (DOM)': ({ testFontInstalled }) => String(testFontInstalled),
