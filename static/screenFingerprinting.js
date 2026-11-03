@@ -4,12 +4,12 @@
 const screenFingerprintTests = [
   {
     name: 'Screen width',
-    description: 'Screen width leaked by the browser through the screen API. Under screen A→B the display mode changes.',
+    description: 'Screen width leaked by the browser.',
     probe: () => String(window.screen.width)
   },
   {
     name: 'Screen height',
-    description: 'Screen height leaked by the browser through the screen API. Under screen A→B the display mode changes.',
+    description: 'Screen height leaked by the browser.',
     probe: () => String(window.screen.height)
   }
 ];
