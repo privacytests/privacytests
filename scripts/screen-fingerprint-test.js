@@ -144,15 +144,25 @@ const runScreenFingerprintTests = async (browserSession, { runPageTest }) => {
       systemSettings.setScreenSize(config.screenSize);
       await sleepMs(2000);
       await browserSession.browser.launch(true);
+      const relaunchBetweenDomains =
+        !!browserSession.browser._defaults?.relaunchBetweenFingerprintingDomains;
       try {
         const perDomain = [];
-        for (const root of screenRoots) {
+        for (let i = 0; i < screenRoots.length; i++) {
+          const root = screenRoots[i];
           const url = `${root}/screenFingerprinting.html`;
           log('screen fingerprint domain', {
             screen: screenSizeKey(config.screenSize),
             url
           });
           perDomain.push(await runPageTest(browserSession, url));
+          const lastDomain = i === screenRoots.length - 1;
+          // Same as device FP: some browsers (LibreWolf) leave extra windows
+          // after open -a that skew window-tied screen.* on later domains.
+          if (!lastDomain && relaunchBetweenDomains) {
+            await browserSession.browser.kill(true);
+            await browserSession.browser.launch(false);
+          }
         }
         perSetting.push({
           config,

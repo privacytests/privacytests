@@ -222,15 +222,25 @@ const runSettingsFingerprintTests = async (browserSession, { runPageTest }) => {
       // Give the OS / browsers a moment to notice the new settings.
       await sleepMs(2000);
       await browserSession.browser.launch(true);
+      const relaunchBetweenDomains =
+        !!browserSession.browser._defaults?.relaunchBetweenFingerprintingDomains;
       try {
         const perDomain = [];
-        for (const root of settingsRoots) {
+        for (let i = 0; i < settingsRoots.length; i++) {
+          const root = settingsRoots[i];
           const url = `${root}/settingsFingerprinting.html`;
           log('settings fingerprint domain', {
             setting: settingLabel(config),
             url
           });
           perDomain.push(await runPageTest(browserSession, url));
+          const lastDomain = i === settingsRoots.length - 1;
+          // Same as device/screen FP: some browsers (LibreWolf) leave extra
+          // windows after open -a that skew window-tied probes on later domains.
+          if (!lastDomain && relaunchBetweenDomains) {
+            await browserSession.browser.kill(true);
+            await browserSession.browser.launch(false);
+          }
         }
         perSetting.push({
           config,
