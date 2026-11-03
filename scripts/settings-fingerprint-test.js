@@ -155,6 +155,11 @@ const mergeDomainResults = (perDomain) => {
   return merged;
 };
 
+// Join settings A/B for tooltips: A vs B uses "|". Domain-farbling within a
+// setting is shown as [v1,v2,v3]. Runner aggregation then comma-joins as usual.
+const joinSettingsVariants = (variants) =>
+  variants.map(v => (Array.isArray(v) ? `[${v.join(',')}]` : String(v))).join('|');
+
 // Pass if every settings-run farbled across first parties, or if the (stable)
 // value is identical across settings A/B.
 const mergeSettingsFingerprintResults = (perSetting) => {
@@ -178,9 +183,9 @@ const mergeSettingsFingerprintResults = (perSetting) => {
       : items.map(({ config }) => settingLabel(config));
     merged[name] = {
       description: items[0].result.description,
-      value: values,
-      settings,
-      randomized,
+      value: joinSettingsVariants(values),
+      settings: joinSettingsVariants(settings),
+      randomized: joinSettingsVariants(randomized),
       passed: allFarbled || stableAcrossSettings,
       ...(items.some(({ result }) => result.error)
         ? { error: items.map(({ result }) => result.error).filter(Boolean).join('; ') }

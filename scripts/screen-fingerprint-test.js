@@ -84,6 +84,10 @@ const mergeDomainResults = (perDomain) => {
   return merged;
 };
 
+// Join screen A/B for tooltips ("|" between sizes; farbling as [v1,v2,v3]).
+const joinScreenVariants = (variants) =>
+  variants.map(v => (Array.isArray(v) ? `[${v.join(',')}]` : String(v))).join('|');
+
 // Pass if every settings-run farbled across first parties, or if the (stable)
 // value is identical across screen A/B.
 const mergeScreenFingerprintResults = (perSetting) => {
@@ -105,9 +109,9 @@ const mergeScreenFingerprintResults = (perSetting) => {
       `${config.screenSize.width}x${config.screenSize.height}`);
     merged[name] = {
       description: items[0].result.description,
-      value: values,
-      settings,
-      randomized,
+      value: joinScreenVariants(values),
+      settings: joinScreenVariants(settings),
+      randomized: joinScreenVariants(randomized),
       passed: allFarbled || stableAcrossSettings,
       ...(items.some(({ result }) => result.error)
         ? { error: items.map(({ result }) => result.error).filter(Boolean).join('; ') }
