@@ -12,6 +12,10 @@ const settingsRoots = [
 
 const screenSizeA = { width: 1024, height: 768 };
 
+// Small fixed Dock icon size for both A/B so orientation changes shrink
+// usable desktop less (avoids large window-size jumps on relaunch).
+const dockTileSize = 16;
+
 // A/B pairs: distinct time zones, second languages, and a11y display toggles
 // so we can see whether browsers expose those setting changes.
 const settingsFingerprintConfigs = [
@@ -26,6 +30,7 @@ const settingsFingerprintConfigs = [
     testFontInstalled: false,
     // Dock bottom vs left (autohide forced off) for Available screen * probes.
     dockOrientation: 'bottom',
+    dockTileSize,
     // Menu bar shown vs autohide (_HIHideMenuBar) for Available screen top.
     hideMenuBar: false,
     reducedMotion: true,
@@ -41,6 +46,7 @@ const settingsFingerprintConfigs = [
     screenSize: null,
     testFontInstalled: true,
     dockOrientation: 'left',
+    dockTileSize,
     hideMenuBar: true,
     reducedMotion: false,
     reducedTransparency: false,
@@ -54,12 +60,13 @@ const log = (...args) => {
 
 const settingLabel = ({
   timezone, languages, keyboardLayout, screenSize, testFontInstalled,
-  dockOrientation, hideMenuBar, reducedMotion, reducedTransparency, increaseContrast
+  dockOrientation, dockTileSize: tileSize, hideMenuBar, reducedMotion,
+  reducedTransparency, increaseContrast
 }) =>
   `${timezone}; languages=${languages.join(',')}; keyboardLayout=${keyboardLayout}; ` +
   (screenSize ? `screen=${screenSize.width}x${screenSize.height}; ` : '') +
   `testFontInstalled=${testFontInstalled}; dock=${dockOrientation}; ` +
-  `hideMenuBar=${hideMenuBar}; ` +
+  `dockTileSize=${tileSize}; hideMenuBar=${hideMenuBar}; ` +
   `reducedMotion=${reducedMotion}; reducedTransparency=${reducedTransparency}; ` +
   `increaseContrast=${increaseContrast}`;
 
@@ -122,6 +129,8 @@ const saveOriginalSettings = () => {
     testFontInstalled: systemSettings.getTestFontInstalled(),
     dockOrientation: systemSettings.getDockOrientation(),
     dockAutohide: systemSettings.getDockAutohide(),
+    dockTileSize: systemSettings.getDockTileSize(),
+    dockMagnification: systemSettings.getDockMagnification(),
     hideMenuBar: systemSettings.getHideMenuBar(),
     reducedMotion: systemSettings.getReducedMotion(),
     reducedTransparency: systemSettings.getReducedTransparency(),
@@ -149,6 +158,9 @@ const restoreOriginalSettings = () => {
     systemSettings.setTestFontInstalled(originalSettings.testFontInstalled);
     systemSettings.setDockOrientation(originalSettings.dockOrientation);
     systemSettings.setDockAutohide(originalSettings.dockAutohide);
+    // setDockTileSize forces magnification off; restore magnification after.
+    systemSettings.setDockTileSize(originalSettings.dockTileSize);
+    systemSettings.setDockMagnification(originalSettings.dockMagnification);
     systemSettings.setHideMenuBar(originalSettings.hideMenuBar);
     systemSettings.setReducedMotion(originalSettings.reducedMotion);
     systemSettings.setReducedTransparency(originalSettings.reducedTransparency);
@@ -244,6 +256,7 @@ const runSettingsFingerprintTests = async (browserSession, { runPageTest }) => {
       }
       systemSettings.setTestFontInstalled(applied.testFontInstalled);
       systemSettings.setDockOrientation(applied.dockOrientation);
+      systemSettings.setDockTileSize(applied.dockTileSize);
       systemSettings.setHideMenuBar(applied.hideMenuBar);
       systemSettings.setReducedMotion(applied.reducedMotion);
       systemSettings.setReducedTransparency(applied.reducedTransparency);

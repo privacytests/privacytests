@@ -66,22 +66,22 @@ const settingsFingerprintTests = [
   },
   {
     name: 'Available screen width',
-    description: 'screen.availWidth. Under settings A/B/C Dock is bottom / left / right (autohide off, varying tilesize), so width should change when side chrome is exposed.',
+    description: 'screen.availWidth. Under settings A/B Dock is bottom / left (autohide off, tilesize 16), so width should change when side chrome is exposed.',
     probe: () => String(window.screen.availWidth)
   },
   {
     name: 'Available screen height',
-    description: 'screen.availHeight. Under settings A/B/C Dock is bottom / left / right and the menu bar is shown vs autohide, so height should change when bottom or top chrome is exposed.',
+    description: 'screen.availHeight. Under settings A/B Dock is bottom / left (tilesize 16) and the menu bar is shown vs autohide, so height should change when bottom or top chrome is exposed.',
     probe: () => String(window.screen.availHeight)
   },
   {
     name: 'Available screen left',
-    description: 'screen.availLeft. Under settings A/B/C Dock is bottom / left / right, so left should be > 0 only when Dock is on the left (if side chrome is exposed).',
+    description: 'screen.availLeft. Under settings A/B Dock is bottom / left (tilesize 16), so left should be > 0 only when Dock is on the left (if side chrome is exposed).',
     probe: () => String(window.screen.availLeft)
   },
   {
     name: 'Available screen top',
-    description: 'screen.availTop. Under settings A/B/C the menu bar is shown vs autohide, so top should change when the menu-bar inset is exposed.',
+    description: 'screen.availTop. Under settings A/B the menu bar is shown vs autohide, so top should change when the menu-bar inset is exposed.',
     probe: () => String(window.screen.availTop)
   },
   {
