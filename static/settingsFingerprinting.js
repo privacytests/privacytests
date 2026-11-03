@@ -6,7 +6,7 @@
 const settingsFingerprintTests = [
   {
     name: 'Time zone',
-    description: 'Time zone leaked by the browser through the DateTimeFormat API.',
+    description: 'Time zone subregion leaked by the browser.',
     probe: () => String(Intl.DateTimeFormat().resolvedOptions().timeZone)
   },
   {
@@ -16,28 +16,28 @@ const settingsFingerprintTests = [
   },
   {
     name: 'Reduced motion preference',
-    description: 'matchMedia("(prefers-reduced-motion: reduce)") → "reduce" or "no-preference". Under settings A/B the OS Reduce Motion toggle is on vs off. Stable value means the preference is not exposed (or is spoofed); changing means it leaks.',
+    description: 'Your browser may leak your system reduced motion preference.',
     probe: () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
       ? 'reduce'
       : 'no-preference'
   },
   {
     name: 'Reduced transparency preference',
-    description: 'matchMedia("(prefers-reduced-transparency: reduce)") → "reduce" or "no-preference". Under settings A/B the OS Reduce Transparency toggle is on vs off.',
+    description: 'Your browser may leak your system reduced transparency preference.',
     probe: () => window.matchMedia('(prefers-reduced-transparency: reduce)').matches
       ? 'reduce'
       : 'no-preference'
   },
   {
     name: 'Display contrast preference',
-    description: 'matchMedia("(prefers-contrast: more)") → "more" or "no-preference". Under settings A/B the OS Increase Contrast toggle is on vs off.',
+    description: 'Your browser may leak your system display contrast preference.',
     probe: () => window.matchMedia('(prefers-contrast: more)').matches
       ? 'more'
       : 'no-preference'
   },
   {
     name: 'Keyboard layout',
-    description: 'Subset of navigator.keyboard.getLayoutMap() for keys that differ across French (AZERTY) vs German (QWERTZ). Chromium-oriented; `"undefined"` when the Keyboard Map API is missing. Stable across layouts means the OS keyboard layout is not exposed.',
+    description: 'Checks if the browser is leaking the system keyboard layout.',
     probe: async () => {
       if (!navigator.keyboard?.getLayoutMap) {
         return String(undefined);
@@ -57,22 +57,22 @@ const settingsFingerprintTests = [
   },
   {
     name: 'Available screen width',
-    description: 'screen.availWidth. Under settings A/B Dock is left@16 / right@32 (autohide off), so width should change when side chrome is exposed.',
+    description: 'Checks if the browser is leaking the available screen width of the user\'s system.',
     probe: () => String(window.screen.availWidth)
   },
   {
     name: 'Available screen height',
-    description: 'screen.availHeight. Under settings A/B the menu bar is shown vs autohide (Dock stays on the side, so it should not affect height). Height should change when the menu-bar inset is exposed.',
+    description: 'Checks if the browser is leaking the available screen height of the user\'s system.',
     probe: () => String(window.screen.availHeight)
   },
   {
     name: 'Available screen left',
-    description: 'screen.availLeft. Under settings A/B Dock is left / right, so left should be > 0 only when Dock is on the left (if side chrome is exposed).',
+    description: 'Checks if the browser is leaking the available screen to the left of the browser window.',
     probe: () => String(window.screen.availLeft)
   },
   {
     name: 'Available screen top',
-    description: 'screen.availTop. Under settings A/B the menu bar is shown vs autohide, so top should change when the menu-bar inset is exposed.',
+    description: 'Checks if the browser is leaking the available screen to the top of the browser window.',
     probe: () => String(window.screen.availTop)
   },
   {
