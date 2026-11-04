@@ -73,7 +73,8 @@ const macOSdefaultBrowserSettings = {
       repo: 'mullvad/mullvad-browser',
       assetPattern: '^mullvad-browser-macos-.*\\.dmg$'
     },
-    postLaunchDelay: 5000
+    // Match Tor: open -a URL opens can land on New Tab if the app is not ready.
+    postLaunchDelay: 10000
   },
   opera: {
     name: 'Opera',
