@@ -102,9 +102,9 @@ const browserInfo = {
     releasePackageName: 'org.torproject.torbrowser',
     nightlyPackageName: 'org.torproject.torbrowser_alpha',
     startupClick: 'tor_bootstrap_connect_button',
-    urlBarClick: 'mozac_browser_toolbar_url_view',
-    urlBarClick2: 'toolbar_wrapper',
-    urlBarKeys: 'mozac_browser_toolbar_edit_url_view'
+    // Same Compose toolbar as recent Firefox.
+    urlBarClick: '//*[@resource-id="ADDRESSBAR_URL_BOX"]',
+    urlBarKeys: '//*[@resource-id="ADDRESSBAR_SEARCH_BOX"]'
   },
   uc: {
     releasePackageName: 'com.UCMobile.intl',
