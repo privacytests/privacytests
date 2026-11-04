@@ -58,12 +58,16 @@ on:
         type: boolean
         default: false
       runners:
-        description: Desktop runners (ignored for android/ios)
+        description: Desktop runners — latest, all 5 slots, or one OS×arch (ignored for android/ios)
         required: true
         type: choice
         options:
           - latest
           - all
+          - macos-26
+          - macos-15
+          - macos-26-intel
+          - macos-15-intel
         default: latest
       categories:
         description: Test categories to run (all = default set for the platform)
@@ -93,10 +97,10 @@ jobs:
     if: inputs.platform == 'desktop' || (github.ref == 'refs/heads/master' && github.repository == 'privacytests/privacytests')
     strategy:
       fail-fast: false
-      # Desktop: one job on macos-latest, or the same 5 OS×arch slots as desktop-tests.yml.
+      # Desktop: macos-latest, one OS×arch slot, or the same 5 slots as desktop-tests.yml.
       # Mobile: a single placeholder so the matrix still has one cell.
       matrix:
-        config: ${{ inputs.platform != 'desktop' && fromJSON('[{"id":1,"runner":"mobile"}]') || (inputs.runners == 'all' && fromJSON('[{"id":1,"runner":"macos-26"},{"id":2,"runner":"macos-15"},{"id":3,"runner":"macos-26-intel"},{"id":4,"runner":"macos-15-intel"},{"id":5,"runner":"macos-26"}]') || fromJSON('[{"id":1,"runner":"macos-latest"}]')) }}
+        config: ${{ inputs.platform != 'desktop' && fromJSON('[{"id":1,"runner":"mobile"}]') || (inputs.runners == 'all' && fromJSON('[{"id":1,"runner":"macos-26"},{"id":2,"runner":"macos-15"},{"id":3,"runner":"macos-26-intel"},{"id":4,"runner":"macos-15-intel"},{"id":5,"runner":"macos-26"}]') || (inputs.runners == 'macos-26' && fromJSON('[{"id":1,"runner":"macos-26"}]') || (inputs.runners == 'macos-15' && fromJSON('[{"id":2,"runner":"macos-15"}]') || (inputs.runners == 'macos-26-intel' && fromJSON('[{"id":3,"runner":"macos-26-intel"}]') || (inputs.runners == 'macos-15-intel' && fromJSON('[{"id":4,"runner":"macos-15-intel"}]') || fromJSON('[{"id":1,"runner":"macos-latest"}]')))))) }}
     runs-on: ${{ inputs.platform == 'desktop' && matrix.config.runner || fromJSON('["self-hosted","mobile"]') }}
     # Share the mobile device with Mobile tests; desktop runs don't need that queue.
     concurrency:
@@ -131,8 +135,8 @@ jobs:
           if [ '${{ inputs.incognito }}' = 'true' ] && [ '${{ inputs.platform }}' != 'desktop' ]; then
             echo "Note: incognito is ignored for ${{ inputs.platform }}"
           fi
-          if [ '${{ inputs.runners }}' = 'all' ] && [ '${{ inputs.platform }}' != 'desktop' ]; then
-            echo "Note: runners=all is ignored for ${{ inputs.platform }} (self-hosted mobile only)"
+          if [ '${{ inputs.runners }}' != 'latest' ] && [ '${{ inputs.platform }}' != 'desktop' ]; then
+            echo "Note: runners=${{ inputs.runners }} is ignored for ${{ inputs.platform }} (self-hosted mobile only)"
           fi
 
       - uses: actions/setup-node@v5
