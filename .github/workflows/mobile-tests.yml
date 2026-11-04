@@ -17,12 +17,15 @@ env:
 
 jobs:
   preflight:
+    # Self-hosted mobile runner: only trusted default-branch runs from this repo.
+    if: github.ref == 'refs/heads/master' && github.repository == 'privacytests/privacytests'
     uses: ./.github/workflows/preflight.yml
     with:
       runs-on: mobile
 
   android-preflight:
     needs: preflight
+    if: github.ref == 'refs/heads/master' && github.repository == 'privacytests/privacytests'
     runs-on: [self-hosted, mobile]
     defaults:
       run:
@@ -78,6 +81,7 @@ jobs:
           - { platform: ios, browser: safari }
           - { platform: ios, browser: vivaldi }
     #      - { platform: ios, browser: onion }
+    if: github.ref == 'refs/heads/master' && github.repository == 'privacytests/privacytests'
     runs-on: [self-hosted, mobile]
     defaults:
       run:

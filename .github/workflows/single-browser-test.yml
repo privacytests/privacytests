@@ -89,6 +89,8 @@ env:
 
 jobs:
   test:
+    # Mobile uses the self-hosted runner — only master on this repo. Desktop stays on GitHub-hosted.
+    if: inputs.platform == 'desktop' || (github.ref == 'refs/heads/master' && github.repository == 'privacytests/privacytests')
     strategy:
       fail-fast: false
       # Desktop: one job on macos-latest, or the same 5 OS×arch slots as desktop-tests.yml.
