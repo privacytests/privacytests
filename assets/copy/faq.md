@@ -16,6 +16,10 @@ It is difficult to objectively weight the different kinds of tests to produce an
 
 All browsers on iOS are required by Apple to use the WebKit engine (the basis of Safari). That means they have many privacy characteristics in common, including fairly comprehensive (but not perfect) state partitioning.
 
+## Why is Vanadium marked "emulator"?
+
+Vanadium is the browser built into GrapheneOS. We test it in an Android emulator running stock Android, with the Vanadium browser and its config app (which provides its content filters and feature flags) installed from the GrapheneOS app repository. This is not GrapheneOS and not a real phone, so the results may differ from Vanadium on a GrapheneOS device. All other Android browsers are tested on a real phone. Click the "emulator" label on the Android results page to see the versions tested.
+
 ## How can I contact the author?
 
 You can email me at contact@privacytests.org or tweet me [@privacytests](https://x.com/privacytests). You can also submit github issues [here](https://github.com/arthuredelstein/privacytests.org/issues).
