@@ -240,7 +240,6 @@ const joinIfArray = x => {
 tooltipFunctions.simple = (result) => {
   let text = '';
   for (const key in result) {
-    console.log(key, result[key]);
     if (key !== 'description') {
       text += `${key}: ${joinIfArray(result[key])}\n`;
     }

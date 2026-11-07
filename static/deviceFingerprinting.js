@@ -23,6 +23,12 @@ const stringifyUaHint = (v) => {
   return String(v);
 };
 
+// Compact fingerprint identity for bulky probe outputs (e.g. canvas data URLs).
+const sha256hex = async (text) =>
+  new Uint8Array(
+    await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
+  ).toHex();
+
 let uaClientHintsPromise;
 const loadUaClientHints = () => {
   if (!uaClientHintsPromise) {
@@ -125,10 +131,10 @@ const deviceFingerprintTests = [
   },
   {
     // Geometry-only Canvas2D sample (FingerprintJS renderGeometryImage): blend + winding,
-    // no text/fonts. Returns a data URL so GPU/AA differences show up in the pixels.
+    // no text/fonts. Hash the data URL so GPU/AA diffs stay visible without bulky payloads.
     name: 'Canvas2D geometry',
     description: 'Tests if your browser leaks behavior of your GPU via the Canvas 2D drawing API.',
-    probe: () => {
+    probe: async () => {
       const canvas = document.createElement('canvas');
       canvas.width = 122;
       canvas.height = 110;
@@ -148,7 +154,7 @@ const deviceFingerprintTests = [
       ctx.arc(60, 60, 60, 0, Math.PI * 2, true);
       ctx.arc(60, 60, 20, 0, Math.PI * 2, true);
       ctx.fill('evenodd');
-      return canvas.toDataURL();
+      return sha256hex(canvas.toDataURL());
     }
   },
   ...uaClientHintProbes,
