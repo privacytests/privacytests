@@ -72,7 +72,7 @@ const deviceFingerprintTests = [
   },
   {
     name: 'Math: Infinity - Infinity',
-    description: 'FingerprintJS-style architecture probe: byte 3 of a Float32 NaN payload after `Infinity - Infinity`. Differs between CPU architectures (e.g. arm64 vs x86). Kept as a raw byte (not String(NaN)) so the payload is visible.',
+    description: 'Byte 3 of a Float32 NaN payload after `Infinity - Infinity`. Differs between CPU architectures.',
     probe: () => {
       const f = new Float32Array(1);
       const u8 = new Uint8Array(f.buffer);
