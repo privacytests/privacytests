@@ -276,12 +276,13 @@ class DesktopBrowser {
 
   // Close the browser. force skips AppleScript: a modal permission dialog
   // does not answer quit, and that wait would burn minutes before pkill.
-  // Fail closed: if the process is still alive after the first attempt,
-  // force-kill once more; if it still survives, throw instead of relaunching
-  // into a half-dead browser (e.g. Tor's firefox binary after soft quit).
+  // Firefox-family always pkill: soft quit can leave Tor's firefox alive or
+  // hang on TCC mic modals from AudioContext. Fail closed: if the process is
+  // still alive after the first attempt, force-kill once more; if it still
+  // survives, throw instead of relaunching into a half-dead browser.
   async kill (force = false) {
     console.log(`kill: ${this.browser} (${this._appName})`);
-    if (force || this._defaults.usePkill) {
+    if (force || this._defaults.usePkill || this._defaults.basedOn === 'firefox') {
       await this._forceKill();
     } else {
       try {
