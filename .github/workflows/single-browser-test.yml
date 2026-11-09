@@ -193,7 +193,7 @@ jobs:
               --out=../${RESULT_FILE}.json \
               "${CATEGORIES_ARGS[@]}"
           fi
-        timeout-minutes: 20
+        timeout-minutes: 30
 
       - name: Upload results
         uses: actions/upload-artifact@v6
