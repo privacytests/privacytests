@@ -321,7 +321,7 @@ const resultsSection = ({ bestResults, category, tooltipFunction }) => {
   return section;
 };
 
-const resultsToTable = (results, title, subtitle, desktopOnly, testMyBrowser) => {
+const resultsToTable = (results, title, subtitle, desktopOnly, testMyBrowser, extensions) => {
   console.log(results);
   const bestResults = results
     .filter(m => m.testResults)
@@ -346,7 +346,11 @@ const resultsToTable = (results, title, subtitle, desktopOnly, testMyBrowser) =>
       if (sectionRows.length === 0) {
         continue;
       }
-      body.push([{ subheading: name, description, tagline }]);
+      // Extensions page compares add-ons, not browsers.
+      const sectionTagline = extensions
+        ? tagline.replaceAll('Which browsers', 'Which extensions')
+        : tagline;
+      body.push([{ subheading: name, description, tagline: sectionTagline }]);
       body = body.concat(sectionRows);
     }
   }
@@ -364,8 +368,8 @@ const dateString = (dateTime) => {
 };
 
 // Creates the content for a page.
-const content = (results, jsonFilename, title, nightly, incognito, testMyBrowser) => {
-  const { headers, body } = resultsToTable(results.all_tests, tableTitleHTML(title), '(default settings)', results.platform === 'Desktop', testMyBrowser);
+const content = (results, jsonFilename, title, nightly, incognito, testMyBrowser, extensions) => {
+  const { headers, body } = resultsToTable(results.all_tests, tableTitleHTML(title), '(default settings)', results.platform === 'Desktop', testMyBrowser, extensions);
   const issueNumberPath = path.join(__dirname, 'issue-number');
   const issueNumberExists = fs.existsSync(issueNumberPath);
   const issueNumber = issueNumberExists ? fs.readFileSync(issueNumberPath).toString().trim() : undefined;
@@ -419,7 +423,7 @@ const content = (results, jsonFilename, title, nightly, incognito, testMyBrowser
     </p>` + `<script type="module">${tooltipScript}</script>`;
 };
 
-const contentPage = ({ results, title, basename, canonicalUrl, previewImageUrl, tableTitle, nightly, incognito, testMyBrowser }) =>
+const contentPage = ({ results, title, basename, canonicalUrl, previewImageUrl, tableTitle, nightly, incognito, testMyBrowser, extensions }) =>
   cleanHtml(
     template.htmlPage({
       title,
@@ -430,7 +434,7 @@ const contentPage = ({ results, title, basename, canonicalUrl, previewImageUrl, 
         path.join(__dirname, '/../assets/css/template.css'),
         path.join(__dirname, '../assets/css/table.css')
       ],
-      content: content(results, basename, tableTitle, nightly, incognito, testMyBrowser)
+      content: content(results, basename, tableTitle, nightly, incognito, testMyBrowser, extensions)
     }));
 
 // Reads in a file and parses it to a JSON object.
@@ -606,6 +610,7 @@ const renderPage = async ({ dataFiles, aggregate }) => {
     tableTitle,
     nightly,
     incognito,
+    extensions,
     basename,
     results: processedResults,
     canonicalUrl: path.basename(resultsFileCanonicalUrl),
