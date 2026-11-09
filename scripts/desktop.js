@@ -154,18 +154,21 @@ class DesktopBrowser {
     this._processName = this._defaults.binaryName ?? path.basename(this._path);
   }
 
+  // Returns matching process lines (empty if none). Logs pgrep output.
   async _logRunningProcesses (when) {
     const name = this._processName;
     try {
       const { stdout } = await execAsync(`pgrep -l ${name}`);
       const processes = stdout.trim().split('\n').filter(line => line.length > 0);
       console.log(`pgrep ${name} (${when}):`, processes.length ? processes : '(none)');
+      return processes;
     } catch (e) {
       if (e.code === 1) {
         console.log(`pgrep ${name} (${when}): (none)`);
-      } else {
-        console.log(`pgrep ${name} (${when}): error`, e.message);
+        return [];
       }
+      console.log(`pgrep ${name} (${when}): error`, e.message);
+      throw e;
     }
   }
 
@@ -273,6 +276,9 @@ class DesktopBrowser {
 
   // Close the browser. force skips AppleScript: a modal permission dialog
   // does not answer quit, and that wait would burn minutes before pkill.
+  // Fail closed: if the process is still alive after the first attempt,
+  // force-kill once more; if it still survives, throw instead of relaunching
+  // into a half-dead browser (e.g. Tor's firefox binary after soft quit).
   async kill (force = false) {
     console.log(`kill: ${this.browser} (${this._appName})`);
     if (force || this._defaults.usePkill) {
@@ -291,7 +297,17 @@ class DesktopBrowser {
       }
     }
     await sleepMs(5000);
-    await this._logRunningProcesses('after kill');
+    let remaining = await this._logRunningProcesses('after kill');
+    if (remaining.length > 0) {
+      console.log(`kill: ${remaining.length} ${this._processName} process(es) still alive; force-killing`);
+      await this._forceKill();
+      await sleepMs(2000);
+      remaining = await this._logRunningProcesses('after force-kill retry');
+      if (remaining.length > 0) {
+        throw new Error(
+          `kill: ${this.browser} still running after force-kill: ${remaining.join('; ')}`);
+      }
+    }
   }
 
   // Restart the browser with same profile.

@@ -104,6 +104,8 @@ const macOSdefaultBrowserSettings = {
     // Tor "nightly" means the latest alpha build (e.g. 16.0a8).
     nightlyName: 'Tor Browser',
     binaryName: 'firefox',
+    // Soft AppleScript quit often leaves Tor's firefox binary alive; pkill it.
+    usePkill: true,
     useOpen: true,
     relaunchBetweenFingerprintingDomains: true,
     basedOn: 'firefox',
