@@ -1,5 +1,9 @@
 # A response to Vivaldi's statement regarding PrivacyTests.org
 
+<i>Arthur Edelstein, 2022 October 5</i>
+
+<b>(See the update, [2026 November 10](#update-2026-november-10), below.)</b>
+
 Vivaldi Technologies, the company that makes Vivaldi browser, has posted a [statement on their website](https://web.archive.org/web/20221003174703/https://vivaldi.com/security/common-questions/#privacytests) regarding PrivacyTests.org. Unfortunately, Vivaldi's statement contains claims about this project that I believe are inaccurate and should be corrected.
 
 I address Vivaldi's claims below, but first I want to mention that criticism of the PrivacyTests.org project is very welcome. In this project, which regularly tests web browsers for privacy leaks, I have striven for accuracy and transparency. If anyone discovers an inaccuracy or something that is not clear, I will be very grateful and I will endeavor to fix the problem promptly.
@@ -34,4 +38,6 @@ What about screen dimensions? Already, Tor Browser, LibreWolf, and Mull Browser 
 
 In summary, I hope Vivaldi will reconsider their position. PrivacyTests.org is intended to offer constructive feedback to browser makers on how they can improve the privacy in their web browsers. Given the high level of innovation at Vivaldi, I hope the company will work on bringing state-of-the-art privacy by default to its users.
 
--- Arthur Edelstein, 2022 October 5
+## Update: 2026 November 10
+
+Good news! As of November 5, Vivaldi 8.3 now blocks trackers by default, as revealed in [PrivacyTests Issue 106](https://privacytests.org/archive/issue106/). Congratulations to the Vivaldi team for this important privacy advance. I hope Vivaldi Browser will continue to add further privacy improvements.
