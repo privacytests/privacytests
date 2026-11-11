@@ -470,7 +470,8 @@ const resultsKeys = [
 
 // Value-based device fingerprint probes:
 // - A modal permission prompt is not a usable fingerprint → pass.
-// - If every trial farbled across first parties (randomized), pass.
+// - If at least two runners farbled across first parties (randomized), pass
+//   (one collision is common when the farbling set is tiny, e.g. {4,8}).
 // - Otherwise pass iff the (stable per-site) value matches across SKUs.
 // Legacy rows (e.g. fonts) already have `passed` and no `value`.
 const scoreDeviceFingerprintingConsistency = (results) => {
@@ -485,8 +486,10 @@ const scoreDeviceFingerprintingConsistency = (results) => {
         continue;
       }
       // Missing `randomized` (legacy rows) → treat as false.
+      // After aggregateRepeatedTrials, randomized is one flag per runner.
       const randomizedFlags = [].concat(result.randomized ?? false);
-      if (randomizedFlags.every(Boolean)) {
+      const randomizedRunnerCount = randomizedFlags.filter(Boolean).length;
+      if (randomizedRunnerCount >= 2) {
         result.passed = true;
         continue;
       }
