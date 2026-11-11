@@ -1,4 +1,41 @@
 # News
+## [Issue 106](/archive/issue106): 2026-11-09
+
+### New browser versions
+
+On Desktop:
+* Brave 157.1
+* Chrome 157.0
+* Duckduckgo 1.214
+* Edge 157.0
+* Firefox 159.0
+* Librewolf 159.0
+* Mullvad 16.0
+* Opera 139.0
+* Safari 27.2
+* Tor 16.0
+* Ungoogled 156.0
+* Vivaldi 8.3
+
+On iOS:
+* Brave 1.97
+* Chrome 157.8103
+* Duckduckgo 7.244
+* Edge 156.4314
+* Firefox 159.1
+* Vivaldi 8.4193
+
+On Android:
+* Brave 1.98
+* Duckduckgo 5.301
+* Edge 156.0
+* Firefox 159.0
+* Focus 159.0
+* Opera 103.3
+* Tor 16.0
+* Vivaldi 8.3
+* Yandex 26.10
+
 ## [Issue 105](/archive/issue105): 2026-10-22
 
 ### New browser versions
