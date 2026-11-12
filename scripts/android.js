@@ -114,6 +114,15 @@ const browserInfo = {
     urlBarClear: 'btn_clear_or_voice',
     contentElement: '//com.uc.webview.export.WebView'
   },
+  // Runs in an emulator on CI; see the Vanadium section of README.md.
+  vanadium: {
+    releasePackageName: 'app.vanadium.browser',
+    // "No thanks" on the notification permission prompt.
+    startupClick: 'negative_button',
+    urlBarClick: 'url_bar',
+    urlBarClick2: 'search_box_text',
+    urlBarKeys: 'url_bar'
+  },
   vivaldi: {
     releasePackageName: 'com.vivaldi.browser',
     nightlyPackageName: 'com.vivaldi.browser.snapshot',
@@ -169,7 +178,8 @@ const versionNameFromDumpsys = (raw) =>
   String(raw).match(/versionName=(\S+)/)[1];
 
 const getAppVersion = _.memoize((packageName) => {
-  const cmd = `/opt/homebrew/bin/adb shell dumpsys package ${packageName} | /usr/bin/grep versionName`;
+  const adb = process.env.ADB_PATH || '/opt/homebrew/bin/adb';
+  const cmd = `${adb} shell dumpsys package ${packageName} | /usr/bin/grep versionName`;
   return versionNameFromDumpsys(execSync(cmd).toString());
 });
 
