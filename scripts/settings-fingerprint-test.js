@@ -31,9 +31,9 @@ const settingsFingerprintConfigs = [
     dockTileSize: dockTileSizeLeft,
     // Menu bar shown vs autohide (_HIHideMenuBar) for Available screen height / top.
     hideMenuBar: false,
-    reducedMotion: true,
-    reducedTransparency: true,
-    increaseContrast: true
+    reducedMotion: false,
+    reducedTransparency: false,
+    increaseContrast: false
   },
   {
     id: 'B',
@@ -43,9 +43,9 @@ const settingsFingerprintConfigs = [
     dockOrientation: 'right',
     dockTileSize: dockTileSizeRight,
     hideMenuBar: true,
-    reducedMotion: false,
-    reducedTransparency: false,
-    increaseContrast: false
+    reducedMotion: true,
+    reducedTransparency: true,
+    increaseContrast: true
   }
 ];
 
