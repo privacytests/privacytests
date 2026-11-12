@@ -155,11 +155,21 @@ class DesktopBrowser {
   }
 
   // Returns matching process lines (empty if none). Logs pgrep output.
+  // Quote the name: unquoted `pgrep -l Google Chrome` treats each word as its
+  // own pattern, so GoogleUpdater / BraveUpdater / EdgeUpdater look "alive"
+  // after the browser itself is gone. Also ignore *Updater helpers — pkill
+  // with the browser name does not (and should not) terminate them.
   async _logRunningProcesses (when) {
     const name = this._processName;
     try {
-      const { stdout } = await execAsync(`pgrep -l ${name}`);
-      const processes = stdout.trim().split('\n').filter(line => line.length > 0);
+      const { stdout } = await execAsync(`pgrep -l ${JSON.stringify(name)}`);
+      const processes = stdout.trim().split('\n').filter(line => {
+        if (!line) {
+          return false;
+        }
+        const procName = line.replace(/^\d+\s+/, '');
+        return !/Updater$/i.test(procName);
+      });
       console.log(`pgrep ${name} (${when}):`, processes.length ? processes : '(none)');
       return processes;
     } catch (e) {
