@@ -41,7 +41,7 @@ jobs:
           - edge-nightly
           - firefox-nightly
           - opera-nightly
-#          - safari-nightly
+          - safari-nightly
           - tor-nightly
           - vivaldi-nightly
         # Five env diversity slots (OS × arch), still numbered 1–5 so
