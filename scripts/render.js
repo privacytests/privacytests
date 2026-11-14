@@ -294,7 +294,10 @@ const resultsSection = ({ bestResults, category, tooltipFunction }) => {
   if (!bestResultsForCategory) {
     return [];
   }
+  // Dropped probes still present in older collected JSON (always-pass / no signal).
+  const omittedRowNames = new Set(['Math.tanh(0.123)']);
   const rowNames = Object.keys(bestResultsForCategory)
+    .filter(name => !omittedRowNames.has(name))
     .sort(Intl.Collator().compare);
   const resultMaps = bestResults
     .map(m => m.testResults[category]);
@@ -307,6 +310,17 @@ const resultsSection = ({ bestResults, category, tooltipFunction }) => {
               </td>`);
     for (const resultMap of resultMaps) {
       try {
+        // Optional probes (e.g. Screen width/height) may be absent on some
+        // runners/SKUs even after aggregation across trials.
+        if (!resultMap?.[rowName]) {
+          row.push(testBody({
+            passed: undefined,
+            testFailed: false,
+            tooltip: 'No data for this browser.',
+            unsupported: true
+          }));
+          continue;
+        }
         const tooltip = tooltipFunction(resultMap[rowName]);
         const { passed, testFailed, unsupported } = resultMap[rowName];
         row.push(testBody({ passed, testFailed, tooltip, unsupported }));
@@ -470,13 +484,18 @@ const resultsKeys = [
 
 // Value-based device fingerprint probes:
 // - A modal permission prompt is not a usable fingerprint → pass.
+// - Need ≥2 runners/devices; otherwise omit the probe (UI shows NA).
 // - If at least two runners farbled across first parties (randomized), pass
 //   (one collision is common when the farbling set is tiny, e.g. {4,8}).
 // - Otherwise pass iff the (stable per-site) value matches across SKUs.
 // Legacy rows (e.g. fonts) already have `passed` and no `value`.
 const scoreDeviceFingerprintingConsistency = (results) => {
   for (const test of results.all_tests || []) {
-    for (const result of Object.values(test.testResults?.device_fingerprinting || {})) {
+    const category = test.testResults?.device_fingerprinting;
+    if (!category) {
+      continue;
+    }
+    for (const [name, result] of Object.entries(category)) {
       if (!('value' in result)) {
         continue;
       }
@@ -488,6 +507,10 @@ const scoreDeviceFingerprintingConsistency = (results) => {
       // Missing `randomized` (legacy rows) → treat as false.
       // After aggregateRepeatedTrials, randomized is one flag per runner.
       const randomizedFlags = [].concat(result.randomized ?? false);
+      if (randomizedFlags.length < 2) {
+        delete category[name];
+        continue;
+      }
       const randomizedRunnerCount = randomizedFlags.filter(Boolean).length;
       if (randomizedRunnerCount >= 2) {
         result.passed = true;
