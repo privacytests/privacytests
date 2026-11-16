@@ -1,6 +1,6 @@
 # Privacy Tests
 
-## WARNING ##
+## ⚠️ WARNING ⚠️ ##
 
 Please contact the author before publishing results from Privacy Tests. The test suite is finicky and needs care to be run correctly.
 
