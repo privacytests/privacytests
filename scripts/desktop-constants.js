@@ -109,17 +109,13 @@ const macOSdefaultBrowserSettings = {
     basedOn: 'firefox',
     env: { MOZ_DISABLE_AUTO_SAFE_MODE: '1', MOZ_CRASHREPORTER_DISABLE: '1' },
     postLaunchDelay: 10000,
-    directoryRelease: {
-      listUrl: 'https://dist.torproject.org/torbrowser/',
-      dmgUrlTemplate: 'https://dist.torproject.org/torbrowser/{version}/tor-browser-macos-{version}.dmg',
-      // Stable releases only (exclude alphas like 16.0a8).
-      versionPattern: 'href=["\']?(\\d+(?:\\.\\d+)+)/'
+    // Official latest-desktop pointers (not the raw dist/ listing, which can
+    // include Android-only version dirs ahead of the macOS DMG).
+    jsonRelease: {
+      url: 'https://aus1.torproject.org/torbrowser/update_3/release/download-macos.json'
     },
-    nightlyDirectoryRelease: {
-      listUrl: 'https://dist.torproject.org/torbrowser/',
-      dmgUrlTemplate: 'https://dist.torproject.org/torbrowser/{version}/tor-browser-macos-{version}.dmg',
-      // Alpha / early builds, e.g. 16.0a8.
-      versionPattern: 'href=["\']?(\\d+\\.\\d+a\\d+)/'
+    nightlyJsonRelease: {
+      url: 'https://aus1.torproject.org/torbrowser/update_3/alpha/download-macos.json'
     }
   },
   ungoogled: {

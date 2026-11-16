@@ -66,6 +66,15 @@ const resolveDirectoryReleaseDmgUrl = ({ listUrl, dmgUrlTemplate, versionPattern
   return dmgUrlTemplate.replaceAll('{version}', version);
 };
 
+// e.g. Tor's download-macos.json: { "binary": "https://.../tor-browser-macos-….dmg", ... }
+const resolveJsonReleaseDmgUrl = ({ url }) => {
+  const release = JSON.parse(execSync(`curl -sL "${url}"`, { encoding: 'utf8' }));
+  if (!release.binary) {
+    throw new Error(`No binary URL in ${url}`);
+  }
+  return release.binary;
+};
+
 const resolveSparkleReleaseDmgUrl = ({ appcastUrl, dmgUrlTemplate }) => {
   const appcast = execSync(`curl -sL "${appcastUrl}"`, { encoding: 'utf8' });
   const versionMatch = appcast.match(/<sparkle:version>([^<]+)<\/sparkle:version>/) ||
@@ -90,6 +99,7 @@ const resolveInstallSettings = (settings, nightly) => {
       dmgUrl: settings.dmgUrl,
       githubRelease: settings.githubRelease,
       directoryRelease: settings.directoryRelease,
+      jsonRelease: settings.jsonRelease,
       sparkleRelease: settings.sparkleRelease
     };
   }
@@ -102,11 +112,15 @@ const resolveInstallSettings = (settings, nightly) => {
     dmgUrl: settings.nightlyDmgUrl,
     githubRelease: settings.nightlyGithubRelease,
     directoryRelease: settings.nightlyDirectoryRelease,
+    jsonRelease: settings.nightlyJsonRelease,
     sparkleRelease: settings.nightlySparkleRelease
   };
 };
 
 const getDmgUrl = (installSettings) => {
+  if (installSettings.jsonRelease) {
+    return resolveJsonReleaseDmgUrl(installSettings.jsonRelease);
+  }
   if (installSettings.directoryRelease) {
     return resolveDirectoryReleaseDmgUrl(installSettings.directoryRelease);
   }
@@ -240,7 +254,7 @@ const installBrowser = async (browserKey) => {
   if (nightly && !settings.nightlyName && !settings.nightlyDmgUrl &&
       !settings.nightlyPkgUrl && !settings.nightlyBrewCask &&
       !settings.nightlyDirectoryRelease && !settings.nightlyGithubRelease &&
-      !settings.nightlySparkleRelease) {
+      !settings.nightlyJsonRelease && !settings.nightlySparkleRelease) {
     throw new Error(`Browser "${browser}" has no nightly/early-release install configured`);
   }
 
@@ -263,7 +277,8 @@ const installBrowser = async (browserKey) => {
     return;
   }
   if (installSettings.dmgUrl || installSettings.githubRelease ||
-      installSettings.directoryRelease || installSettings.sparkleRelease) {
+      installSettings.directoryRelease || installSettings.jsonRelease ||
+      installSettings.sparkleRelease) {
     await installFromDmg(browserKey, installSettings);
     return;
   }

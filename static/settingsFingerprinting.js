@@ -8,7 +8,7 @@ const mediaPreference = (feature, values) => {
       return value;
     }
   }
-  return undefined;
+  throw new Error("Unsupported");
 };
 
 // Probes that should ideally stay stable when OS settings change (or be
