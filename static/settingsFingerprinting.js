@@ -1,5 +1,16 @@
 /* global postDataAndCarryOn */
 
+// Match a CSS media preference by trying each legal keyword. If none match
+// (unsupported feature), return undefined.
+const mediaPreference = (feature, values) => {
+  for (const value of values) {
+    if (window.matchMedia(`(${feature}: ${value})`).matches) {
+      return value;
+    }
+  }
+  return undefined;
+};
+
 // Probes that should ideally stay stable when OS settings change (or be
 // farbled per first-party). The harness runs this page under settings A/B
 // (dock/menu + misc). Screen size is probed separately.
@@ -12,23 +23,17 @@ const settingsFingerprintTests = [
   {
     name: 'Reduced motion preference',
     description: 'Your browser may leak your system reduced motion preference.',
-    probe: () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      ? 'reduce'
-      : 'no-preference'
+    probe: () => mediaPreference('prefers-reduced-motion', ['no-preference', 'reduce'])
   },
   {
     name: 'Reduced transparency preference',
     description: 'Your browser may leak your system reduced transparency preference.',
-    probe: () => window.matchMedia('(prefers-reduced-transparency: reduce)').matches
-      ? 'reduce'
-      : 'no-preference'
+    probe: () => mediaPreference('prefers-reduced-transparency', ['no-preference', 'reduce'])
   },
   {
     name: 'Display contrast preference',
     description: 'Your browser may leak your system display contrast preference.',
-    probe: () => window.matchMedia('(prefers-contrast: more)').matches
-      ? 'more'
-      : 'no-preference'
+    probe: () => mediaPreference('prefers-contrast', ['no-preference', 'more', 'less', 'custom'])
   },
   {
     name: 'Keyboard layout',
