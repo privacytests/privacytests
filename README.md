@@ -1,4 +1,11 @@
 # PrivacyTests
+
+## WARNING ##
+
+Please contact the author before publishing results from Privacy Tests. The test suite is needs care to be run correctly.
+
+## The Project ##
+
 PrivacyTests is an open-source testing program that measures browser privacy characteristics, and a website, https://privacytests.org, that renders the results for human consumption.
 
 PrivacyTests uses the MIT license.
