@@ -8,7 +8,7 @@ const mediaPreference = (feature, values) => {
       return value;
     }
   }
-  throw new Error("Unsupported");
+  throw new Error('Unsupported');
 };
 
 // Probes that should ideally stay stable when OS settings change (or be
@@ -40,7 +40,7 @@ const settingsFingerprintTests = [
     description: 'Checks if the browser is leaking the system keyboard layout.',
     probe: async () => {
       if (!navigator.keyboard?.getLayoutMap) {
-        return String(undefined);
+        throw new Error('Unsupported');
       }
       const map = await navigator.keyboard.getLayoutMap();
       // Sample codes that diverge between QWERTY / AZERTY / QWERTZ.
