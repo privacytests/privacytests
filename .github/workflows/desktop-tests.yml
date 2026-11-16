@@ -64,6 +64,12 @@ jobs:
             incognito: on
           - browser: tor-nightly
             incognito: on
+          # STP currently ships only for macOS 26+ (arm + intel still give
+          # two SKUs for device fingerprinting).
+          - browser: safari-nightly
+            repetitions: { id: 2, runner: macos-15 }
+          - browser: safari-nightly
+            repetitions: { id: 4, runner: macos-15-intel }
         # Brave Tor windows don't fit in the matrix; add fixed iterations here instead.
         include:
           - { browser: brave, repetitions: { id: 1, runner: macos-26 }, incognito: off, tor: on }

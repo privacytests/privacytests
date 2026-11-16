@@ -97,7 +97,11 @@ const macOSdefaultBrowserSettings = {
     useOpen: true,
     basedOn: 'safari',
     preinstalled: true,
-    nightlyBrewCask: 'safari-technology-preview'
+    // Latest STP DMG for the current macOS major from Apple's resources page
+    // (Homebrew's cask lags / 403s and refuses pre-Tahoe hosts).
+    nightlyPageRelease: {
+      url: 'https://developer.apple.com/safari/resources/'
+    }
   },
   tor: {
     name: 'Tor Browser',

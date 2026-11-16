@@ -75,6 +75,22 @@ const resolveJsonReleaseDmgUrl = ({ url }) => {
   return release.binary;
 };
 
+// e.g. Safari Technology Preview links on https://developer.apple.com/safari/resources/
+// — pick the DMG whose label matches the host's macOS major version.
+const resolvePageReleaseDmgUrl = ({ url }) => {
+  const html = execSync(`curl -sL -A "Mozilla/5.0" "${url}"`, { encoding: 'utf8' });
+  const major = execSync('sw_vers -productVersion', { encoding: 'utf8' }).trim().split('.')[0];
+  const blocks = [...html.matchAll(/<li class="dmg">([\s\S]*?)<\/li>/g)];
+  for (const [, block] of blocks) {
+    const text = block.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ');
+    const href = block.match(/href="(https:\/\/[^"]+\.dmg)"/)?.[1];
+    if (href && new RegExp(`macOS\\s*${major}\\b`).test(text)) {
+      return href;
+    }
+  }
+  throw new Error(`No DMG for macOS ${major} at ${url}`);
+};
+
 const resolveSparkleReleaseDmgUrl = ({ appcastUrl, dmgUrlTemplate }) => {
   const appcast = execSync(`curl -sL "${appcastUrl}"`, { encoding: 'utf8' });
   const versionMatch = appcast.match(/<sparkle:version>([^<]+)<\/sparkle:version>/) ||
@@ -88,6 +104,12 @@ const resolveSparkleReleaseDmgUrl = ({ appcastUrl, dmgUrlTemplate }) => {
 const appDisplayName = (settings, nightly) =>
   nightly ? (settings.nightlyName ?? settings.name) : settings.name;
 
+const hasNightlyInstallMethod = (settings) =>
+  !!(settings.nightlyBrewCask || settings.nightlyDmgUrl || settings.nightlyPkgUrl ||
+     settings.nightlyDirectoryRelease || settings.nightlyGithubRelease ||
+     settings.nightlyJsonRelease || settings.nightlyPageRelease ||
+     settings.nightlySparkleRelease);
+
 const resolveInstallSettings = (settings, nightly) => {
   if (!nightly) {
     return {
@@ -100,6 +122,7 @@ const resolveInstallSettings = (settings, nightly) => {
       githubRelease: settings.githubRelease,
       directoryRelease: settings.directoryRelease,
       jsonRelease: settings.jsonRelease,
+      pageRelease: settings.pageRelease,
       sparkleRelease: settings.sparkleRelease
     };
   }
@@ -107,17 +130,21 @@ const resolveInstallSettings = (settings, nightly) => {
     appName: settings.nightlyName ?? settings.name,
     brewCask: settings.nightlyBrewCask ?? settings.brewCask,
     brewCaskInstalledName: settings.nightlyBrewCaskInstalledName ?? settings.brewCaskInstalledName,
-    preinstalled: settings.nightlyBrewCask ? false : settings.preinstalled,
+    preinstalled: hasNightlyInstallMethod(settings) ? false : settings.preinstalled,
     pkgUrl: settings.nightlyPkgUrl,
     dmgUrl: settings.nightlyDmgUrl,
     githubRelease: settings.nightlyGithubRelease,
     directoryRelease: settings.nightlyDirectoryRelease,
     jsonRelease: settings.nightlyJsonRelease,
+    pageRelease: settings.nightlyPageRelease,
     sparkleRelease: settings.nightlySparkleRelease
   };
 };
 
 const getDmgUrl = (installSettings) => {
+  if (installSettings.pageRelease) {
+    return resolvePageReleaseDmgUrl(installSettings.pageRelease);
+  }
   if (installSettings.jsonRelease) {
     return resolveJsonReleaseDmgUrl(installSettings.jsonRelease);
   }
@@ -160,6 +187,17 @@ const findAppBundle = (mountPoint, preferredAppName) => {
     `Could not find "${preferredAppName}.app" in ${mountPoint} (found: ${apps.join(', ')})`);
 };
 
+const findPkgInMount = (mountPoint) => {
+  const pkgs = fs.readdirSync(mountPoint).filter((entry) => entry.endsWith('.pkg'));
+  if (pkgs.length === 1) {
+    return path.join(mountPoint, pkgs[0]);
+  }
+  if (pkgs.length > 1) {
+    throw new Error(`Multiple PKGs in ${mountPoint}: ${pkgs.join(', ')}`);
+  }
+  return null;
+};
+
 const installFromDmg = async (browserKey, installSettings) => {
   const dmgPath = path.join(os.tmpdir(), `${browserKey}.dmg`);
   const mountPoint = path.join(os.tmpdir(), `${browserKey}_mount`);
@@ -179,9 +217,22 @@ const installFromDmg = async (browserKey, installSettings) => {
     execSync(`hdiutil attach "${dmgPath}" -nobrowse -mountpoint "${mountPoint}"`);
     mounted = true;
 
-    const appBundle = findAppBundle(mountPoint, installSettings.appName);
     const destApp = path.join(defaultAppDirectory, `${installSettings.appName}.app`);
+    // STP (and similar) ship a PKG inside the DMG rather than a drag-install .app.
+    const pkgPath = findPkgInMount(mountPoint);
+    if (pkgPath) {
+      if (fs.existsSync(destApp)) {
+        execSync(`sudo rm -rf "${destApp}"`);
+      }
+      execSync(`sudo installer -pkg "${pkgPath}" -target /`);
+      if (!fs.existsSync(destApp)) {
+        throw new Error(`PKG install did not create ${destApp}`);
+      }
+      console.log(`Installed ${path.basename(destApp)} to ${defaultAppDirectory}`);
+      return;
+    }
 
+    const appBundle = findAppBundle(mountPoint, installSettings.appName);
     if (fs.existsSync(destApp)) {
       execSync(`rm -rf "${destApp}"`);
     }
@@ -251,10 +302,7 @@ const installBrowser = async (browserKey) => {
   if (!settings) {
     throw new Error(`Unknown browser "${browserKey}"`);
   }
-  if (nightly && !settings.nightlyName && !settings.nightlyDmgUrl &&
-      !settings.nightlyPkgUrl && !settings.nightlyBrewCask &&
-      !settings.nightlyDirectoryRelease && !settings.nightlyGithubRelease &&
-      !settings.nightlyJsonRelease && !settings.nightlySparkleRelease) {
+  if (nightly && !settings.nightlyName && !hasNightlyInstallMethod(settings)) {
     throw new Error(`Browser "${browser}" has no nightly/early-release install configured`);
   }
 
@@ -278,7 +326,7 @@ const installBrowser = async (browserKey) => {
   }
   if (installSettings.dmgUrl || installSettings.githubRelease ||
       installSettings.directoryRelease || installSettings.jsonRelease ||
-      installSettings.sparkleRelease) {
+      installSettings.pageRelease || installSettings.sparkleRelease) {
     await installFromDmg(browserKey, installSettings);
     return;
   }
