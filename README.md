@@ -2,7 +2,7 @@
 
 ## WARNING ##
 
-Please contact the author before publishing results from Privacy Tests. The test suite is needs care to be run correctly.
+Please contact the author before publishing results from Privacy Tests. The test suite is finicky and needs care to be run correctly.
 
 ## The Project ##
 
