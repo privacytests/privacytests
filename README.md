@@ -1,4 +1,4 @@
-# PrivacyTests
+# Privacy Tests
 
 ## WARNING ##
 
