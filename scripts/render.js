@@ -158,7 +158,7 @@ const resultsToDescription = ({
   browser,
   reportedVersion,
   os, os_version,
-  prefs, incognito, tor, nightly, extension
+  prefs, incognito, tor, nightly, extension, environment, environmentDetails
 }) => {
   const browserFinal = browser;
   const browserVersionLong = reportedVersion;
@@ -183,6 +183,9 @@ const resultsToDescription = ({
   }
   if (tor === true) {
     finalText += '<br>Tor';
+  }
+  if (environment) {
+    finalText += `<br><span class="tooltipParent">${escapeHtml(environment)}<pre class="tooltipText">${escapeHtml(environmentDetails)}</pre></span>`;
   }
   if (extension) {
     const { shortName, version, logoDataUri } = extensionDisplayInfoSync(extension);
