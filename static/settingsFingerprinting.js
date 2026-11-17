@@ -16,8 +16,8 @@ const mediaPreference = (feature, values) => {
 // (dock/menu + misc). Screen size is probed separately.
 const settingsFingerprintTests = [
   {
-    name: 'Time zone',
-    description: 'Time zone subregion leaked by the browser.',
+    name: 'Time zone region',
+    description: 'Time zone subregion leaked by the browser (such as \'Europe/Paris\').',
     probe: () => String(Intl.DateTimeFormat().resolvedOptions().timeZone)
   },
   {
